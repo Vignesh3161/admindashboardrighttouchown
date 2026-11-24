@@ -63,7 +63,6 @@ function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isGlow, setIsGlow] = useState(false);
-  const [invalidField, setInvalidField] = useState("");
 
   // Animations
   const floatAnimation = keyframes`
@@ -99,7 +98,6 @@ function AdminLogin() {
   `;
 
   const focusField = (field) => {
-    setInvalidField(field === "mobile" || field === "password" ? field : "");
     if (field !== "mobile" && field !== "password") return;
     setTimeout(() => {
       const target = field === "password" ? passwordInputRef.current : mobileInputRef.current;
@@ -124,6 +122,11 @@ function AdminLogin() {
     focusField(field);
   };
 
+  const handleMobileChange = (e) => {
+    const numericOnly = (e.target.value || "").replace(/\D/g, "").slice(0, 10);
+    setIdentifier(numericOnly);
+  };
+
   const handleMobileKeyDown = (e) => {
     if (e.key !== "Enter") return;
     e.preventDefault();
@@ -131,7 +134,16 @@ function AdminLogin() {
     if (!cleanIdentifier) {
       showErrorToast({
         title: "Mobile Number Required",
-        message: "Please enter your registered mobile number to continue.",
+        message: "Please enter your registered 10-digit mobile number to continue.",
+        type: "warning",
+        field: "mobile",
+      });
+      return;
+    }
+    if (cleanIdentifier.length !== 10) {
+      showErrorToast({
+        title: "Invalid Mobile Number",
+        message: "Mobile number must be exactly 10 digits.",
         type: "warning",
         field: "mobile",
       });
@@ -142,14 +154,14 @@ function AdminLogin() {
 
   const handleLogin = async (e) => {
     if (e) e.preventDefault();
-    setInvalidField("");
+    if (loading) return;
 
     const cleanIdentifier = (identifier || "").toString().trim();
 
     if (!cleanIdentifier && !password) {
       showErrorToast({
         title: "Required Fields Missing",
-        message: "Please enter your registered mobile number and password to sign in.",
+        message: "Please enter your registered 10-digit mobile number and password to sign in.",
         type: "warning",
         field: "mobile",
       });
@@ -159,7 +171,17 @@ function AdminLogin() {
     if (!cleanIdentifier) {
       showErrorToast({
         title: "Mobile Number Required",
-        message: "Please enter your registered mobile number to proceed.",
+        message: "Please enter your registered 10-digit mobile number to proceed.",
+        type: "warning",
+        field: "mobile",
+      });
+      return;
+    }
+
+    if (cleanIdentifier.length !== 10 || !/^\d{10}$/.test(cleanIdentifier)) {
+      showErrorToast({
+        title: "Invalid Mobile Number",
+        message: "Mobile number must be exactly 10 digits.",
         type: "warning",
         field: "mobile",
       });
@@ -205,10 +227,7 @@ function AdminLogin() {
         isClosable: true,
       });
 
-      setTimeout(() => {
-        window.location.hash = "#/owner/dashboard";
-        window.location.reload();
-      }, 500);
+      navigate("/owner/dashboard", { replace: true });
 
     } catch (err) {
       if (!isMountedRef.current) return;
@@ -220,7 +239,7 @@ function AdminLogin() {
       const rawMessage = (err?.message || err?.detail || "").toString().trim();
 
       let title = "Login Failed";
-      let message = rawMessage || "Invalid mobile number or password.";
+      let message = "Invalid mobile number or password. Please verify your credentials and try again.";
       let type = "error";
       let field = "password";
 
@@ -234,10 +253,6 @@ function AdminLogin() {
         message = rawMessage || "Too many failed login attempts. For security reasons, access is temporarily locked.";
         type = "warning";
         field = "none";
-      } else if (status === 404 || code === "USER_NOT_FOUND" || /not found/i.test(rawMessage)) {
-        title = "Account Not Found";
-        message = rawMessage || "No account found with this mobile number. Please check the number or contact your super administrator.";
-        field = "mobile";
       } else if (
         status === 403 ||
         code === "FORBIDDEN" ||
@@ -245,23 +260,30 @@ function AdminLogin() {
         /access denied|role|restricted/i.test(rawMessage)
       ) {
         title = "Access Restricted";
-        message = rawMessage || "This mobile number is registered under a different role. This dashboard is strictly for Owner and Admin accounts.";
+        message = "This account is not authorized for the Owner or Admin dashboard.";
+        type = "warning";
         field = "mobile";
       } else if (code === "ACCOUNT_BLOCKED" || /blocked|suspended/i.test(rawMessage)) {
         title = "Account Suspended";
-        message = rawMessage || "Your administrator account has been suspended or blocked by security policy.";
+        message = "Your administrator account has been suspended or blocked by security policy.";
+        type = "error";
         field = "none";
       } else if (
         status === 401 ||
+        status === 404 ||
         code === "INVALID_CREDENTIALS" ||
-        /invalid|incorrect|password/i.test(rawMessage)
+        code === "USER_NOT_FOUND" ||
+        /invalid|incorrect|not found|password|credential/i.test(rawMessage)
       ) {
-        title = "Incorrect Credentials";
-        message = rawMessage || "The mobile number or password you entered is incorrect. Please verify your credentials and try again.";
+        // Generic authentication error message without revealing whether the mobile number or password was incorrect
+        title = "Invalid Credentials";
+        message = "Invalid mobile number or password. Please verify your credentials and try again.";
+        type = "error";
         field = "password";
       } else if (status >= 500) {
         title = "Authentication Service Error";
-        message = rawMessage || "The authentication service encountered an unexpected error. Please try again shortly.";
+        message = "The authentication service encountered an unexpected error. Please try again shortly.";
+        type = "error";
         field = "none";
       }
 
@@ -467,7 +489,7 @@ function AdminLogin() {
         >
           <VStack spacing={{ base: "20px", sm: "22px", md: "25px", lg: "28px", xl: "30px" }} align="stretch">
             {/* Mobile / Identifier Field */}
-            <FormControl isRequired isInvalid={invalidField === "mobile"}>
+            <FormControl isRequired>
               <FormLabel
                 fontSize={{ base: "14px", sm: "15px", md: "16px", lg: "16px", xl: "17px" }}
                 fontWeight="600"
@@ -505,20 +527,21 @@ function AdminLogin() {
               </FormLabel>
               <Input
                 ref={mobileInputRef}
-                type="text"
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={10}
                 placeholder="Enter Registered 10-Digit Mobile Number"
                 value={identifier}
-                onChange={(e) => {
-                  setIdentifier(e.target.value);
-                  setInvalidField("");
-                }}
+                onChange={handleMobileChange}
                 onKeyDown={handleMobileKeyDown}
+                isDisabled={loading}
                 size={{ base: "md", sm: "lg", md: "lg", lg: "lg", xl: "lg" }}
                 h={{ base: "45px", sm: "48px", md: "50px", lg: "52px", xl: "55px" }}
                 p="14px"
                 borderRadius="12px"
                 border="2px solid"
-                borderColor={invalidField === "mobile" ? "red.400" : "gray.200"}
+                borderColor="gray.200"
                 bg="white"
                 _hover={{ borderColor: "teal.300" }}
                 _focus={{
@@ -531,7 +554,7 @@ function AdminLogin() {
             </FormControl>
 
             {/* Password Field */}
-            <FormControl isRequired isInvalid={invalidField === "password"}>
+            <FormControl isRequired>
               <FormLabel
                 fontSize={{ base: "14px", sm: "15px", md: "16px", lg: "16px", xl: "17px" }}
                 fontWeight="600"
@@ -559,15 +582,13 @@ function AdminLogin() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your account password"
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setInvalidField("");
-                  }}
+                  onChange={(e) => setPassword(e.target.value)}
+                  isDisabled={loading}
                   h={{ base: "45px", sm: "48px", md: "50px", lg: "52px", xl: "55px" }}
                   p="14px"
                   borderRadius="12px"
                   border="2px solid"
-                  borderColor={invalidField === "password" ? "red.400" : "gray.200"}
+                  borderColor="gray.200"
                   bg="white"
                   _hover={{ borderColor: "teal.300" }}
                   _focus={{
@@ -588,6 +609,7 @@ function AdminLogin() {
                     bg="gray.100"
                     _hover={{ bg: "gray.200" }}
                     onClick={() => setShowPassword(!showPassword)}
+                    isDisabled={loading}
                     borderRadius="10px"
                     transition="all 0.3s ease"
                   >
@@ -606,6 +628,7 @@ function AdminLogin() {
               color="#004d4d"
               isLoading={loading}
               loadingText="Authenticating..."
+              isDisabled={loading}
               fontSize={{ base: "16px", sm: "17px", md: "18px", lg: "18px", xl: "19px" }}
               fontWeight="bold"
               _hover={{
@@ -625,7 +648,7 @@ function AdminLogin() {
               transition="all 0.3s ease"
               boxShadow="0 8px 25px rgba(255, 215, 0, 0.25)"
             >
-              {loading ? "🔐 Authenticating..." : "🚀 Sign In to Dashboard"}
+              🚀 Sign In to Dashboard
             </Button>
 
             {/* Security Footer */}
