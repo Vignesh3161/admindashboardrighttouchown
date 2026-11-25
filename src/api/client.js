@@ -8,7 +8,7 @@ import {
   createUnauthorizedResponseHandler,
 } from "views/utils/axiosInstance";
 import { normalizeError } from "errors/normalizeError";
-import { API_BASE_URL, resolveApiBaseUrl } from "config/apiConfig";
+import { resolveApiBaseUrl } from "config/apiConfig";
 
 export const apiClient = axios.create({
   baseURL: `${resolveApiBaseUrl()}/api`,

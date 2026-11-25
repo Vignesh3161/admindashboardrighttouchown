@@ -9,7 +9,7 @@ import {
   getToken,
   updateTokens,
 } from "./authStorage";
-import { API_BASE_URL, resolveApiBaseUrl } from "config/apiConfig";
+import { resolveApiBaseUrl } from "config/apiConfig";
 
 const refreshClient = axios.create({
   baseURL: `${resolveApiBaseUrl()}/api`,

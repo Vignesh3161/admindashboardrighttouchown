@@ -1,7 +1,7 @@
 import axios from "axios";
 import { appToast } from "components/feedback/standaloneToast";
 import { normalizeError } from "errors/normalizeError";
-import { API_BASE_URL, resolveApiBaseUrl } from "config/apiConfig";
+import { resolveApiBaseUrl } from "config/apiConfig";
 import { clearAuth, getToken, getRefreshToken } from "./authStorage";
 import { refreshSession, isAuthEndpoint, markSessionExpired } from "./tokenRefresh";
 

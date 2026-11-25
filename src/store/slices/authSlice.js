@@ -29,7 +29,7 @@ import {
   isPrivilegedRole,
   normalizeRole,
 } from "config/accessPolicy";
-import { API_BASE_URL, resolveApiBaseUrl } from "config/apiConfig";
+import { resolveApiBaseUrl } from "config/apiConfig";
 
 export { PRIVILEGED_ROLES, isAdminRole, isOwnerRole, isPrivilegedRole };
 
