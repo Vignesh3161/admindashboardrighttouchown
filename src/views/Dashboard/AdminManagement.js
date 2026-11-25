@@ -68,7 +68,7 @@ import ConfirmActionModal from "components/common/ConfirmActionModal";
 import { PageSkeleton, TableSkeleton } from "components/common";
 import ErrorState from "components/feedback/ErrorState";
 import { useAppToast } from "components/feedback";
-import { API_ORIGIN } from "config/apiConfig";
+import { API_ORIGIN, resolveApiOrigin } from "config/apiConfig";
 import { MdOutlinePending } from "react-icons/md";
 import {
   getKYCFullPII,

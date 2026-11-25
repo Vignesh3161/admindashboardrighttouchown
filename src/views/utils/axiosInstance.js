@@ -1,7 +1,7 @@
 import axios from "axios";
 import { appToast } from "components/feedback/standaloneToast";
 import { normalizeError } from "errors/normalizeError";
-import { API_BASE_URL } from "config/apiConfig";
+import { API_BASE_URL, resolveApiBaseUrl } from "config/apiConfig";
 import { clearAuth, getToken, getRefreshToken } from "./authStorage";
 import { refreshSession, isAuthEndpoint, markSessionExpired } from "./tokenRefresh";
 
@@ -155,20 +155,25 @@ if (typeof window !== "undefined" && window.fetch) {
 }
 
 // --- Configuration ---
-const BASE_URL = `${API_BASE_URL}/api`;
+const BASE_URL = {
+  toString: () => `${resolveApiBaseUrl()}/api`,
+  valueOf: () => `${resolveApiBaseUrl()}/api`,
+  [Symbol.toPrimitive]: () => `${resolveApiBaseUrl()}/api`,
+};
 const TIMEOUT_MS = 10000;
 
 // =========================================================
 // 1. GENERAL USER AXIOS INSTANCE
 // =========================================================
 const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: resolveApiBaseUrl(),
   timeout: TIMEOUT_MS,
   headers: { "Content-Type": "application/json" },
 });
 
 axiosInstance.interceptors.request.use(
   (config) => {
+    config.baseURL = resolveApiBaseUrl();
     const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -182,13 +187,14 @@ axiosInstance.interceptors.request.use(
 // 2️⃣ ADMIN / SUPER ADMIN AXIOS INSTANCE
 // =========================================================
 const adminAxiosInstance = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: resolveApiBaseUrl(),
   timeout: TIMEOUT_MS,
   headers: { "Content-Type": "application/json" },
 });
 
 adminAxiosInstance.interceptors.request.use(
   (config) => {
+    config.baseURL = resolveApiBaseUrl();
     const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

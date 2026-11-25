@@ -75,4 +75,14 @@ export const designTokens = {
     topbarHeight: "64px",
     maxContentWidth: "1440px",
   },
+  scrollbar: {
+    width: "7px",
+    height: "7px",
+    track: { light: "#F1F5F9", dark: "#1E293B" },
+    thumb: {
+      vertical: "linear-gradient(180deg, #FE2934 0%, #FF5252 60%, rgba(254, 41, 52, 0.25) 100%)",
+      horizontal: "linear-gradient(90deg, #FE2934 0%, #FF5252 60%, rgba(254, 41, 52, 0.25) 100%)",
+      hover: "#E02424",
+    },
+  },
 };

@@ -255,12 +255,12 @@ export default function Dashboard(props) {
           scrollbarColor: "#FE2934 #F1F5F9",
           scrollbarGutter: "stable",
           "&::-webkit-scrollbar": {
-            width: "8px",
+            width: "7px",
           },
           "&::-webkit-scrollbar-track": {
             background: "#F1F5F9",
             borderRadius: "9999px",
-            margin: "6px 0",
+            margin: "4px 0",
           },
           "&::-webkit-scrollbar-thumb": {
             background: "linear-gradient(180deg, #FE2934 0%, #FF5252 60%, rgba(254, 41, 52, 0.25) 100%)",
@@ -273,7 +273,7 @@ export default function Dashboard(props) {
             background: "linear-gradient(180deg, #E02424 0%, #FE2934 70%, rgba(224, 36, 36, 0.45) 100%)",
             border: "2px solid transparent",
             backgroundClip: "content-box",
-            boxShadow: "0 0 10px rgba(254, 41, 52, 0.5)",
+            boxShadow: "0 0 8px rgba(254, 41, 52, 0.45)",
           },
         }}
       >

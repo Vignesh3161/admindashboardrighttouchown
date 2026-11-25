@@ -827,7 +827,7 @@ export default function ScheduleSlotSettingsTab() {
             <Text fontSize="3xs" fontWeight="800" color="gray.400" textTransform="uppercase" mb={1.5}>
               Preview Across Bookable Days:
             </Text>
-            <Flex overflowX="auto" pb={2} gap={1.5} sx={{ scrollbarWidth: "none", "::-webkit-scrollbar": { display: "none" } }}>
+            <Flex overflowX="auto" pb={2} gap={1.5}>
               {previewDays.map((d) => {
                 const isSelected = selectedPreviewDayIndex === d.index;
                 return (

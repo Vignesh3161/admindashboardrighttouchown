@@ -18,13 +18,6 @@ import {
 } from "@chakra-ui/react";
 import FormErrorSummary from "components/feedback/FormErrorSummary";
 
-const globalScrollbarStyles = {
-  "&::-webkit-scrollbar": { width: "6px", height: "6px" },
-  "&::-webkit-scrollbar-track": { background: "rgba(0, 0, 0, 0.04)", borderRadius: "8px" },
-  "&::-webkit-scrollbar-thumb": { background: "rgba(0, 128, 128, 0.28)", borderRadius: "8px" },
-  "&::-webkit-scrollbar-thumb:hover": { background: "rgba(0, 128, 128, 0.45)" },
-};
-
 /**
  * Universal AppModal Component
  *
@@ -199,7 +192,6 @@ export default function AppModal({
           px={6}
           maxH={bodyMaxH}
           overflowY="auto"
-          css={globalScrollbarStyles}
         >
           {error ? (
             <Box mb={4}>

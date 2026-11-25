@@ -1138,10 +1138,7 @@ export default function SchedulingOps() {
             borderColor={isDark ? "gray.700" : "gray.200"}
             overflowX="auto"
             overflowY="hidden"
-            sx={{
-              scrollbarWidth: "none",
-              "::-webkit-scrollbar": { display: "none" },
-            }}
+            pb={1}
           >
             <Tab fontWeight="700" fontSize="sm" py={3.5} px={{ base: 3, md: 4 }} whiteSpace="nowrap">
               <HStack spacing={2}>

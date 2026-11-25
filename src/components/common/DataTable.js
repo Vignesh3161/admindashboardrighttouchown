@@ -18,27 +18,6 @@ import {
 import { FaInbox, FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
 import TablePagination from "./TablePagination";
 
-const scrollbarStyles = {
-  "&::-webkit-scrollbar": {
-    width: "6px",
-    height: "6px",
-  },
-  "&::-webkit-scrollbar-track": {
-    background: "transparent",
-  },
-  "&::-webkit-scrollbar-thumb": {
-    background: "transparent",
-    borderRadius: "3px",
-    transition: "background 0.3s ease",
-  },
-  "&:hover::-webkit-scrollbar-thumb": {
-    background: "#cbd5e1",
-  },
-  "&:hover::-webkit-scrollbar-thumb:hover": {
-    background: "#94a3b8",
-  },
-};
-
 const TH_BASE = {
   bg: "gray.50",
   color: "gray.500",
@@ -175,7 +154,6 @@ export default function DataTable({
     >
       <Box
         overflow="auto"
-        css={scrollbarStyles}
         flex={1}
         minH={0}
         maxH={maxHeight}

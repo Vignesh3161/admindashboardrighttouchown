@@ -1223,28 +1223,6 @@ export default function ServiceManagement() {
     </Tr>
   );
 
-  // Global scrollbar styles for mobile
-  const globalScrollbarStyles = {
-    '&::-webkit-scrollbar': {
-      width: '6px',
-      height: '6px',
-    },
-    '&::-webkit-scrollbar-track': {
-      background: 'transparent',
-    },
-    '&::-webkit-scrollbar-thumb': {
-      background: 'transparent',
-      borderRadius: '3px',
-      transition: 'background 0.3s ease',
-    },
-    '&:hover::-webkit-scrollbar-thumb': {
-      background: '#cbd5e1',
-    },
-    '&:hover::-webkit-scrollbar-thumb:hover': {
-      background: '#94a3b8',
-    },
-  };
-
   // Calculate statistics already handled at top
 
   // Mobile Card Component for Category
@@ -1318,7 +1296,7 @@ export default function ServiceManagement() {
         pt={0}
         minH="100%"
         w="100%"
-        css={globalScrollbarStyles}
+       
       >
         <Card
           bg="white"
@@ -1364,7 +1342,7 @@ export default function ServiceManagement() {
                   flex="1"
                   overflowY="auto"
                   p={4}
-                  css={globalScrollbarStyles}
+                 
                 >
                   <FormControl mb="20px">
                     <FormLabel htmlFor="category" color="gray.700" fontSize="sm">Category Name *</FormLabel>
@@ -1534,7 +1512,7 @@ export default function ServiceManagement() {
                   flex="1"
                   overflowY="auto"
                   overflowX="hidden"
-                  css={globalScrollbarStyles}
+                 
                   pr={2}
                 >
                   <Box p={4}>
@@ -2327,7 +2305,7 @@ export default function ServiceManagement() {
       pt={0}
       minH="100%"
       w="100%"
-      css={globalScrollbarStyles}
+     
     >
       {/* Fixed Statistics Cards */}
       <Box
@@ -2733,7 +2711,7 @@ export default function ServiceManagement() {
                         overflow="auto"
                         px={3}
                         py={1.5}
-                        css={globalScrollbarStyles}
+                       
                       >
                         {currentCategories.length > 0 ? (
                           currentCategories.map((cat, idx) => (
@@ -2944,7 +2922,7 @@ export default function ServiceManagement() {
                         overflow="auto"
                         px={3}
                         py={1.5}
-                        css={globalScrollbarStyles}
+                       
                       >
                         {currentServices.length > 0 ? (
                           currentServices.map((service, idx) => (
@@ -2970,7 +2948,7 @@ export default function ServiceManagement() {
                     display="flex"
                     flexDirection="column"
                     overflowY="auto"
-                    css={globalScrollbarStyles}
+                   
                     p={{ base: 3, md: 5 }}
                     gap={5}
                   >
@@ -3306,7 +3284,7 @@ export default function ServiceManagement() {
                         </Flex>
 
                         {filteredAnalysisServices.length > 0 ? (
-                          <Box overflowX="auto" css={globalScrollbarStyles}>
+                          <Box overflowX="auto">
                             <Table variant="simple" size="sm">
                               <Thead bg={`${customColor}10`}>
                                 <Tr verticalAlign="middle">

@@ -263,14 +263,6 @@ export default function TechnicianSearchCombobox({
               maxH="240px"
               overflowY="auto"
               pr={1}
-              css={{
-                "&::-webkit-scrollbar": { width: "4px" },
-                "&::-webkit-scrollbar-track": { background: "transparent" },
-                "&::-webkit-scrollbar-thumb": {
-                  background: "#cbd5e1",
-                  borderRadius: "4px",
-                },
-              }}
             >
               {allowAll && !search && (
                 <Flex

@@ -13,7 +13,7 @@ import {
 import { applySocketCounts } from "store/slices/notificationsSlice";
 import { getToken, getRefreshToken, handleSessionExpiry } from "views/utils/axiosInstance";
 import { refreshSession } from "views/utils/tokenRefresh";
-import { API_ORIGIN } from "config/apiConfig";
+import { API_ORIGIN, resolveApiOrigin } from "config/apiConfig";
 
 export const ADMIN_PRODUCT_FLOW_EVENT = "admin_product_flow_updated";
 export const ADMIN_SCHEDULED_POOL_EVENT = "rt:scheduled_pool_event";
@@ -47,7 +47,7 @@ export const useAdminSocket = () => {
     const token = getToken();
     if (!token) return undefined;
 
-    const socket = io(API_ORIGIN, {
+    const socket = io(resolveApiOrigin(), {
       transports: ["websocket", "polling"],
       auth: { token },
       reconnection: true,

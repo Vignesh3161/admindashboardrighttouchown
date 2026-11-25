@@ -29,7 +29,7 @@ import {
   isPrivilegedRole,
   normalizeRole,
 } from "config/accessPolicy";
-import { API_BASE_URL } from "config/apiConfig";
+import { API_BASE_URL, resolveApiBaseUrl } from "config/apiConfig";
 
 export { PRIVILEGED_ROLES, isAdminRole, isOwnerRole, isPrivilegedRole };
 
@@ -40,7 +40,7 @@ export const loginOwner = createAsyncThunk(
     try {
       const cleanIdentifier = (identifier || "").toString().trim();
       const res = await axios.post(
-        `${API_BASE_URL}/api/user/login/owner`,
+        `${resolveApiBaseUrl()}/api/user/login/owner`,
         { identifier: cleanIdentifier, password, role: "Owner" },
         { headers: { "Content-Type": "application/json" } }
       );
@@ -111,7 +111,7 @@ export const loginOwner = createAsyncThunk(
 );
 
 const fetchProfile = (token) =>
-  axios.get(`${API_BASE_URL}/api/user/me`, {
+  axios.get(`${resolveApiBaseUrl()}/api/user/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 

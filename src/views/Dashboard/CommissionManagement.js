@@ -120,27 +120,6 @@ import { fetchServices } from "store/slices/referenceSlice";
 const BRAND = "#008080";
 const BRAND_DARK = "#006666";
 
-const globalScrollbarStyles = {
-  "&::-webkit-scrollbar": {
-    width: "6px",
-    height: "6px",
-  },
-  "&::-webkit-scrollbar-track": {
-    background: "transparent",
-  },
-  "&::-webkit-scrollbar-thumb": {
-    background: "transparent",
-    borderRadius: "3px",
-    transition: "background 0.3s ease",
-  },
-  "&:hover::-webkit-scrollbar-thumb": {
-    background: "#cbd5e1",
-  },
-  "&:hover::-webkit-scrollbar-thumb:hover": {
-    background: "#94a3b8",
-  },
-};
-
 export default function CommissionManagement() {
   const toast = useAppToast();
   const dispatch = useAppDispatch();
@@ -710,7 +689,7 @@ export default function CommissionManagement() {
       px={0}
       minH="100vh"
       overflowY="auto"
-      css={globalScrollbarStyles}
+     
     >
       {loadError && (
         <Box mb={4}>
@@ -863,7 +842,7 @@ export default function CommissionManagement() {
           </Flex>
 
           {/* Module Navigation Tabs */}
-          <HStack spacing={2} overflowX="auto" pb={2} pt={1} css={globalScrollbarStyles}>
+          <HStack spacing={2} overflowX="auto" pb={2} pt={1}>
             {[
               { label: "1. Service Commissions & Scheduling", icon: MdAttachMoney, count: filteredCommissions.length },
               { label: "2. Booking Overrides & Calculator", icon: FaCalculator, count: bookings.length },

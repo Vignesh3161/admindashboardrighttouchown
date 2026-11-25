@@ -1803,28 +1803,6 @@ export default function ProductManagement() {
   // Responsive detection
   const isMobile = useBreakpointValue({ base: true, md: false });
 
-  // Global scrollbar styles
-  const globalScrollbarStyles = {
-    '&::-webkit-scrollbar': {
-      width: '6px',
-      height: '6px',
-    },
-    '&::-webkit-scrollbar-track': {
-      background: 'transparent',
-    },
-    '&::-webkit-scrollbar-thumb': {
-      background: 'transparent',
-      borderRadius: '3px',
-      transition: 'background 0.3s ease',
-    },
-    '&:hover::-webkit-scrollbar-thumb': {
-      background: '#cbd5e1',
-    },
-    '&:hover::-webkit-scrollbar-thumb:hover': {
-      background: '#94a3b8',
-    },
-  };
-
   // Pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -2845,7 +2823,6 @@ export default function ProductManagement() {
       <CategoryProductEditor
         currentView={currentView}
         customColor={customColor}
-        globalScrollbarStyles={globalScrollbarStyles}
         handleBack={handleBack}
         selectedProduct={selectedProduct}
         newCategory={newCategory}
@@ -2877,7 +2854,7 @@ export default function ProductManagement() {
       pt={{ base: "120px", md: "45px" }}
       height={{ base: "calc(100vh - 20px)", md: "calc(100vh - 40px)" }}
       overflow="hidden"
-      css={globalScrollbarStyles}
+     
     >
       {loadError && (
         <Box px={{ base: 1, md: 4 }} pt={{ base: 1, md: 2 }}>
@@ -3239,7 +3216,7 @@ export default function ProductManagement() {
             ) : (
               <Box display="flex" flexDirection="column" overflow="hidden">
                 {/* Desktop Table View */}
-                <Box display={{ base: "none", md: "block" }} overflow="auto" css={globalScrollbarStyles}>
+                <Box display={{ base: "none", md: "block" }} overflow="auto">
                   {currentView === "categories" && (
                     <Table variant="simple" size="sm" bg="transparent">
                       <Thead>
@@ -5185,7 +5162,7 @@ export default function ProductManagement() {
                   overflow="auto"
                   px={3}
                   py={2}
-                  css={globalScrollbarStyles}
+                 
                 >
                   {currentView === "categories" && (
                     currentCategories.length > 0 ? (

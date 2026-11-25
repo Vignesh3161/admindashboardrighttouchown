@@ -253,28 +253,6 @@ export default function UserManagement() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const cancelRef = useRef();
 
-  // Global scrollbar styles
-  const globalScrollbarStyles = {
-    "&::-webkit-scrollbar": {
-      width: "6px",
-      height: "6px",
-    },
-    "&::-webkit-scrollbar-track": {
-      background: "transparent",
-    },
-    "&::-webkit-scrollbar-thumb": {
-      background: "transparent",
-      borderRadius: "3px",
-      transition: "background 0.3s ease",
-    },
-    "&:hover::-webkit-scrollbar-thumb": {
-      background: "#cbd5e1",
-    },
-    "&:hover::-webkit-scrollbar-thumb:hover": {
-      background: "#94a3b8",
-    },
-  };
-
   // Derive available cities from user addresses and bookings
   const availableCities = useMemo(() => {
     const map = new Map();
@@ -620,7 +598,7 @@ export default function UserManagement() {
       pt={0}
       minH="100%"
       w="100%"
-      css={globalScrollbarStyles}
+     
     >
       {/* 1. Metric Overview Cards (Decoupled from filters) */}
       <Box
@@ -1049,7 +1027,7 @@ export default function UserManagement() {
                   overflow="auto"
                   px={3}
                   py={1.5}
-                  css={globalScrollbarStyles}
+                 
                 >
                   {currentItems.length > 0 ? (
                     currentItems.map((user, idx) => (

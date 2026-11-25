@@ -9,12 +9,17 @@ import {
   getToken,
   updateTokens,
 } from "./authStorage";
-import { API_BASE_URL } from "config/apiConfig";
+import { API_BASE_URL, resolveApiBaseUrl } from "config/apiConfig";
 
 const refreshClient = axios.create({
-  baseURL: `${API_BASE_URL}/api`,
+  baseURL: `${resolveApiBaseUrl()}/api`,
   timeout: 15000,
   headers: { "Content-Type": "application/json" },
+});
+
+refreshClient.interceptors.request.use((config) => {
+  config.baseURL = `${resolveApiBaseUrl()}/api`;
+  return config;
 });
 
 export class RefreshError extends Error {

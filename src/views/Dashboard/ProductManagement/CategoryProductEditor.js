@@ -40,7 +40,6 @@ export default function CategoryProductEditor(props) {
   const {
     currentView,
     customColor,
-    globalScrollbarStyles,
     handleBack,
     selectedProduct,
     newCategory,
@@ -69,7 +68,7 @@ export default function CategoryProductEditor(props) {
         pt={0}
         minH="100%"
         w="100%"
-        css={globalScrollbarStyles}
+       
       >
         <Card
           bg="white"
@@ -115,7 +114,7 @@ export default function CategoryProductEditor(props) {
                   flex="1"
                   overflowY="auto"
                   p={4}
-                  css={globalScrollbarStyles}
+                 
                 >
                   <FormControl mb="20px" isRequired>
                     <FormLabel htmlFor="name" color="gray.700" fontSize="sm">Name</FormLabel>
@@ -273,7 +272,7 @@ export default function CategoryProductEditor(props) {
                 <Box
                   flex="1"
                   overflowY="auto"
-                  css={globalScrollbarStyles}
+                 
                   pr={2}
                 >
                   <Box p={4}>
@@ -751,7 +750,6 @@ export default function CategoryProductEditor(props) {
 CategoryProductEditor.propTypes = {
   currentView: PropTypes.string.isRequired,
   customColor: PropTypes.string,
-  globalScrollbarStyles: PropTypes.object,
   handleBack: PropTypes.func.isRequired,
   selectedProduct: PropTypes.object,
   newCategory: PropTypes.object,

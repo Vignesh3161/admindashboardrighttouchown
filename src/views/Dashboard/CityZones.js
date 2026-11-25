@@ -728,18 +728,6 @@ import { fetchTechnicians as fetchTechniciansShared } from "store/slices/technic
     // Sub-zone search filter inside ManageServiceModal
     const [manageModalSubZoneSearch, setManageModalSubZoneSearch] = useState("");
 
-    const globalScrollbarStyles = {
-      scrollbarWidth: "thin",
-      scrollbarColor: "#cbd5e1 #f8fafc",
-      "&::-webkit-scrollbar": { width: "6px", height: "6px" },
-      "&::-webkit-scrollbar-track": { background: "#f8fafc", borderRadius: "4px" },
-      "&::-webkit-scrollbar-thumb": {
-        background: "#cbd5e1",
-        borderRadius: "4px",
-      },
-      "&:hover::-webkit-scrollbar-thumb": { background: "#94a3b8" },
-    };
-
     const getTechPermissionDistricts = (tech) => {
       const seen = new Set();
       return [...(tech?.enabledDistrictIds || []), ...(tech?.allowedCityIds || [])].filter((d) => {
@@ -4696,7 +4684,7 @@ import { fetchTechnicians as fetchTechniciansShared } from "store/slices/technic
         px={{ base: 2, md: 4 }}
         w="100%"
         minH="100%"
-        css={globalScrollbarStyles}
+       
       >
         {loadError && (
           <Box mb={3}>
@@ -4854,7 +4842,7 @@ import { fetchTechnicians as fetchTechniciansShared } from "store/slices/technic
               </Flex>
 
               {/* Tabs Bar — 5 Core Operational Modules */}
-              <HStack spacing={2} overflowX="auto" pb={2} pt={1} css={globalScrollbarStyles}>
+              <HStack spacing={2} overflowX="auto" pb={2} pt={1}>
                 {[
                   { icon: MdApartment, label: "1. District Master", count: activeDistrictsCount },
                   { icon: MdMap, label: "2. City Micro-Zones", count: zones.length },
@@ -5155,7 +5143,7 @@ import { fetchTechnicians as fetchTechniciansShared } from "store/slices/technic
                         overflowX="auto"
                         flex="1"
                         minH="0"
-                        css={globalScrollbarStyles}
+                       
                       >
                         <Table size="sm" variant="simple">
                           <Thead bg="gray.50" position="sticky" top={0} zIndex={3} boxShadow="0 1px 0 0 #e2e8f0">
@@ -5289,7 +5277,7 @@ import { fetchTechnicians as fetchTechniciansShared } from "store/slices/technic
                       overflowX="auto"
                       flex="1"
                       minH="0"
-                      css={globalScrollbarStyles}
+                     
                     >
                       <Table size="sm" variant="simple">
                         <Thead bg="gray.50" position="sticky" top={0} zIndex={3} boxShadow="0 1px 0 0 #e2e8f0">
@@ -5795,7 +5783,7 @@ import { fetchTechnicians as fetchTechniciansShared } from "store/slices/technic
                       overflowX="auto"
                       flex="1"
                       minH="0"
-                      css={globalScrollbarStyles}
+                     
                     >
                       <Table size="sm" variant="simple">
                         <Thead bg="gray.50" position="sticky" top={0} zIndex={3} boxShadow="0 1px 0 0 #e2e8f0">
@@ -6069,7 +6057,7 @@ import { fetchTechnicians as fetchTechniciansShared } from "store/slices/technic
                       overflowX="auto"
                       flex="1"
                       minH="0"
-                      css={globalScrollbarStyles}
+                     
                     >
                       <Table size="sm" variant="simple">
                         <Thead bg="gray.50" position="sticky" top={0} zIndex={3} boxShadow="0 1px 0 0 #e2e8f0">
@@ -6181,9 +6169,9 @@ import { fetchTechnicians as fetchTechniciansShared } from "store/slices/technic
                   </TabPanel>
 
                   {/* TAB 4: SPATIAL HIERARCHY, DIAGNOSTICS & MONITORING (1.5) */}
-                  <TabPanel p={4} flex="1" minH="0" overflowY="auto" css={globalScrollbarStyles}>
+                  <TabPanel p={4} flex="1" minH="0" overflowY="auto">
                     {/* Sub-Navigation Navigation Pills */}
-                    <HStack spacing={2} mb={4} pb={2} borderBottom="1px solid" borderColor="gray.200" overflowX="auto" css={globalScrollbarStyles}>
+                    <HStack spacing={2} mb={4} pb={2} borderBottom="1px solid" borderColor="gray.200" overflowX="auto">
                       {[
                         { icon: MdAccountTree, label: "Spatial Hierarchy Tree" },
                         { icon: MdAnalytics, label: "District Live Dashboard & Impact" },
@@ -7582,7 +7570,7 @@ import { fetchTechnicians as fetchTechniciansShared } from "store/slices/technic
                       pb={2.5}
                       pt={1}
                       px={1}
-                      css={globalScrollbarStyles}
+                     
                       align="center"
                     >
                       <Button

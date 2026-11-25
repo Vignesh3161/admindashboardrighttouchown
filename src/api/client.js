@@ -8,16 +8,17 @@ import {
   createUnauthorizedResponseHandler,
 } from "views/utils/axiosInstance";
 import { normalizeError } from "errors/normalizeError";
-import { API_BASE_URL } from "config/apiConfig";
+import { API_BASE_URL, resolveApiBaseUrl } from "config/apiConfig";
 
 export const apiClient = axios.create({
-  baseURL: `${API_BASE_URL}/api`,
+  baseURL: `${resolveApiBaseUrl()}/api`,
   timeout: 15000,
   headers: { "Content-Type": "application/json" },
 });
 
 apiClient.interceptors.request.use(
   (config) => {
+    config.baseURL = `${resolveApiBaseUrl()}/api`;
     const token = getToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

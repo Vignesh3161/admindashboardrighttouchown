@@ -72,19 +72,24 @@ export const globalStyles = {
       "table tr, table tbody tr, .chakra-table tr, .chakra-table tbody tr": {
         transition: "background 0.15s ease",
       },
-      // Bespoke Capsule Scrollbar (Overall Application)
+      // Bespoke Universal Vertical & Horizontal Capsule Scrollbar System
       "*": {
         scrollbarWidth: "thin",
-        scrollbarColor: "#FE2934 #F1F5F9",
+        scrollbarColor: props.colorMode === "dark" ? "#FE2934 #1E293B" : "#FE2934 #F1F5F9",
       },
       "*::-webkit-scrollbar": {
-        width: "8px",
-        height: "8px",
+        width: "7px",
+        height: "7px",
       },
       "*::-webkit-scrollbar-track": {
         background: props.colorMode === "dark" ? "#1E293B" : "#F1F5F9",
         borderRadius: "9999px",
-        margin: "6px 0",
+      },
+      "*::-webkit-scrollbar-track:vertical": {
+        margin: "4px 0",
+      },
+      "*::-webkit-scrollbar-track:horizontal": {
+        margin: "0 4px",
       },
       "*::-webkit-scrollbar-thumb": {
         background: "linear-gradient(180deg, #FE2934 0%, #FF5252 60%, rgba(254, 41, 52, 0.25) 100%)",
@@ -93,11 +98,38 @@ export const globalStyles = {
         backgroundClip: "content-box",
         transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       },
+      "*::-webkit-scrollbar-thumb:vertical": {
+        background: "linear-gradient(180deg, #FE2934 0%, #FF5252 60%, rgba(254, 41, 52, 0.25) 100%)",
+        borderRadius: "9999px",
+        border: "2px solid transparent",
+        backgroundClip: "content-box",
+      },
+      "*::-webkit-scrollbar-thumb:horizontal": {
+        background: "linear-gradient(90deg, #FE2934 0%, #FF5252 60%, rgba(254, 41, 52, 0.25) 100%)",
+        borderRadius: "9999px",
+        border: "2px solid transparent",
+        backgroundClip: "content-box",
+      },
       "*::-webkit-scrollbar-thumb:hover": {
+        background: props.colorMode === "dark" ? "#FE2934" : "#E02424",
+        border: "2px solid transparent",
+        backgroundClip: "content-box",
+        boxShadow: "0 0 8px rgba(254, 41, 52, 0.45)",
+      },
+      "*::-webkit-scrollbar-thumb:vertical:hover": {
         background: "linear-gradient(180deg, #E02424 0%, #FE2934 70%, rgba(224, 36, 36, 0.45) 100%)",
         border: "2px solid transparent",
         backgroundClip: "content-box",
-        boxShadow: "0 0 10px rgba(254, 41, 52, 0.5)",
+        boxShadow: "0 0 8px rgba(254, 41, 52, 0.45)",
+      },
+      "*::-webkit-scrollbar-thumb:horizontal:hover": {
+        background: "linear-gradient(90deg, #E02424 0%, #FE2934 70%, rgba(224, 36, 36, 0.45) 100%)",
+        border: "2px solid transparent",
+        backgroundClip: "content-box",
+        boxShadow: "0 0 8px rgba(254, 41, 52, 0.45)",
+      },
+      "*::-webkit-scrollbar-corner": {
+        background: "transparent",
       },
     }),
   },
