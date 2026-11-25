@@ -61,4 +61,13 @@ for (const target of targets) {
   }
 }
 
+// Ensure serve.json exists in build/ if build folder exists
+const serveJsonSrc = path.join(projectRoot, "serve.json");
+const serveJsonDest = path.join(projectRoot, "build", "serve.json");
+if (fs.existsSync(serveJsonSrc) && fs.existsSync(path.join(projectRoot, "build"))) {
+  try {
+    fs.copyFileSync(serveJsonSrc, serveJsonDest);
+  } catch (err) {}
+}
+
 console.log(`[generate-env] Active REACT_APP_API_BASE_URL: ${envConfig.REACT_APP_API_BASE_URL}`);
