@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import AppModal from "components/common/AppModal";
 import { useAppToast } from "components/feedback";
+import { FormSkeleton } from "components/common";
 import {
   Box,
   VStack,
@@ -233,12 +234,9 @@ export default function PayoutSettingsModal({ isOpen, onClose, onSuccess }) {
       }
     >
       {loading ? (
-        <Center py={16}>
-          <VStack spacing={3}>
-            <Spinner size="lg" color="teal.500" thickness="3px" />
-            <Text fontSize="sm" color="gray.500">Loading current payout limits & settings...</Text>
-          </VStack>
-        </Center>
+        <Box py={4}>
+          <FormSkeleton fields={5} />
+        </Box>
       ) : (
         <VStack spacing={5} align="stretch" py={1}>
           {errorMsg && (

@@ -38,6 +38,7 @@ import CardHeader from "components/Card/CardHeader.js";
 import SharedStatCard from "components/common/StatCard";
 import RefreshButton from "components/common/RefreshButton";
 import StatusBadge from "components/common/StatusBadge";
+import { FormSkeleton } from "components/common";
 import { getUserPermissions, getPermissionsAnalytics } from "api/permissions";
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import {
@@ -179,7 +180,7 @@ export default function PermissionsManagement() {
   const totalModules = analytics?.modules ?? analytics?.totalModules ?? "10";
 
   return (
-    <Box pt={{ base: "120px", md: "75px" }}>
+    <Box pt={0}>
       {/* 1. TOP STAT CARDS */}
       <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={{ base: 3, md: 4 }} mb={{ base: 3, md: 4 }}>
         <SharedStatCard
@@ -275,14 +276,9 @@ export default function PermissionsManagement() {
 
           {/* User Details & Permissions View */}
           {loading ? (
-            <Center py={16}>
-              <VStack spacing={3}>
-                <Spinner color={BRAND} size="xl" thickness="3px" />
-                <Text color="gray.500" fontSize="sm">
-                  Loading user permissions profile...
-                </Text>
-              </VStack>
-            </Center>
+            <Box py={4}>
+              <FormSkeleton fields={6} hasAvatar={true} />
+            </Box>
           ) : perms ? (
             <Box>
               {/* Profile Card Banner */}

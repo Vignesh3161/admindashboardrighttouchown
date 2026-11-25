@@ -39,6 +39,7 @@ import { selectKYCRecords } from "store/slices/techniciansSlice";
 import { useAppToast } from "components/feedback";
 import { getTechnicianWalletOverview } from "api/wallet";
 import { formatInr } from "./FinancialBreakdown";
+import { TableSkeleton } from "components/common";
 import PayoutStatusBadge from "./PayoutStatusBadge";
 import TechnicianSearchCombobox from "./TechnicianSearchCombobox";
 import Card from "components/Card/Card.js";
@@ -386,14 +387,9 @@ export default function TechnicianWalletDetailsCard({
           </Flex>
 
           {loading && (
-            <Flex py={8} justify="center" align="center">
-              <HStack spacing={3}>
-                <Spinner size="md" color="teal.500" />
-                <Text fontSize="xs" color="gray.500">
-                  Loading authoritative wallet ledger from backend...
-                </Text>
-              </HStack>
-            </Flex>
+            <Box py={4}>
+              <TableSkeleton rows={4} columns={5} />
+            </Box>
           )}
 
           {errorMsg && (
@@ -457,19 +453,6 @@ export default function TechnicianWalletDetailsCard({
                   </Badge>
 
                   {/* Actions for this technician */}
-                  {onOpenSendMoney && (
-                    <Button
-                      size="xs"
-                      colorScheme="teal"
-                      variant="solid"
-                      leftIcon={<FaPaperPlane />}
-                      isDisabled={eligibility.payoutBlocked}
-                      onClick={() => onOpenSendMoney(overview.technician)}
-                    >
-                      Pay Directly
-                    </Button>
-                  )}
-
                   {onFilterTableByTech && (
                     <Button
                       size="xs"

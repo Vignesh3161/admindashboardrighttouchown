@@ -1,5 +1,6 @@
 import React from "react";
 import AppModal from "components/common/AppModal";
+import { FormSkeleton } from "components/common";
 import {
   Flex,
   Box,
@@ -57,7 +58,7 @@ export default function PayoutDetailsModal({
             </Badge>
           </Flex></>} footer={<><Button size="sm" colorScheme="teal" onClick={onClose}>Close Details</Button></>}>
           {detailsLoading ? (
-            <Center p="40px"><Spinner color={brandColor} /></Center>
+            <Box py={4}><FormSkeleton fields={6} /></Box>
           ) : (
             <VStack spacing="20px" align="stretch">
               {/* Technician Profile Card */}

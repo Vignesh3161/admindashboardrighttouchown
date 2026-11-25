@@ -75,10 +75,8 @@ export const useSessionRefresh = () => {
 
       const refreshToken = getRefreshToken();
       if (!refreshToken) {
-        // No refresh token available. If token is already expired, terminate session.
-        if (expiry && expiry <= Date.now()) {
-          handleSessionExpiry("Session expired");
-        }
+        // No refresh token available from backend. Do not proactively terminate;
+        // let the HTTP client interceptor handle real server 401s on demand.
         return;
       }
 

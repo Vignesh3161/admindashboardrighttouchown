@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import AppModal from "components/common/AppModal";
+import { FormSkeleton } from "components/common";
 import {
   Button,
   VStack,
@@ -178,12 +179,9 @@ export default function PayoutReceiptModal({
       }
     >
       {loading ? (
-        <Center py={16}>
-          <VStack spacing={3}>
-            <Spinner size="lg" color="teal.500" thickness="3px" />
-            <Text fontSize="sm" color="gray.500">Generating official payout voucher...</Text>
-          </VStack>
-        </Center>
+        <Box py={4}>
+          <FormSkeleton fields={6} />
+        </Box>
       ) : errorMsg ? (
         <Center py={16}>
           <VStack spacing={3}>

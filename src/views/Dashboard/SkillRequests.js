@@ -32,6 +32,7 @@ import CardBody from "components/Card/CardBody.js";
 import CardHeader from "components/Card/CardHeader.js";
 import { MobileCard, MobileCardActions } from "components/common/MobileCard";
 import StatusBadge from "components/common/StatusBadge";
+import { TableSkeleton } from "components/common";
 import { listSkillRequests, reviewSkillRequest } from "api/skillRequests";
 
 const BRAND = "#008080";
@@ -118,7 +119,7 @@ export default function SkillRequests() {
   const skillOf = (r) => r?.skill || r?.serviceName || r?.serviceId || "—";
 
   return (
-    <Box pt={{ base: "120px", md: "75px" }}>
+    <Box pt={0}>
       <Card>
         <CardHeader>
           <Flex justify="space-between" align="center" w="100%" wrap="wrap" gap={3}>
@@ -148,7 +149,9 @@ export default function SkillRequests() {
               onRetry={fetchList}
             />
           ) : loading ? (
-            <Center py={10}><Spinner color={BRAND} /></Center>
+            <Box py={4}>
+              <TableSkeleton rows={6} columns={5} />
+            </Box>
           ) : pageRows.length === 0 ? (
             <Center py={10}><Text color="gray.500">No skill requests found.</Text></Center>
           ) : (

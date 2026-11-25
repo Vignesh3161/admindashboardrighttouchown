@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import {
   Table,
@@ -12,8 +12,10 @@ import {
   Text,
   Skeleton,
   Icon,
+  HStack,
+  useColorModeValue,
 } from "@chakra-ui/react";
-import { FaInbox } from "react-icons/fa";
+import { FaInbox, FaSort, FaSortUp, FaSortDown } from "react-icons/fa";
 import TablePagination from "./TablePagination";
 
 const scrollbarStyles = {
@@ -38,35 +40,29 @@ const scrollbarStyles = {
 };
 
 const TH_BASE = {
-  bg: "brand.500",
-  color: "white",
-  fontSize: "xs",
-  fontWeight: "bold",
+  bg: "gray.50",
+  color: "gray.500",
+  fontSize: "11px",
+  fontWeight: "600",
   textTransform: "uppercase",
-  letterSpacing: "0.5px",
-  py: 2.5,
-  px: 3,
+  letterSpacing: "0.05em",
+  py: 3,
+  px: 4,
   whiteSpace: "nowrap",
-  borderColor: "brand.600",
+  borderColor: "gray.200",
+  borderBottomWidth: "1px",
 };
 
 const TD_BASE = {
-  py: 2.5,
-  px: 3,
-  fontSize: "sm",
+  py: 3.5,
+  px: 4,
+  fontSize: "xs",
   verticalAlign: "middle",
   borderColor: "gray.100",
+  borderBottomWidth: "1px",
+  lineHeight: "tall",
 };
 
-/**
- * Canonical admin table — single source of truth for header/row geometry.
- *
- * - Header: brand.500 filled bar, white uppercase xs text, py 2.5 (uniform height)
- * - Rows: py 2.5 px 3, sm text, gray.100 dividers, brandAlpha.10 hover (uniform height)
- * - Loading: header stays visible, skeleton rows keep geometry stable
- * - Empty: header stays visible, icon empty-state row (fixes floating-text empties)
- * - Pagination: optional canonical footer via `pagination`
- */
 export default function DataTable({
   columns,
   rows = [],
@@ -81,8 +77,45 @@ export default function DataTable({
   pagination,
   maxHeight,
   tableProps,
+  onRowClick,
+  sortable = true,
+  defaultSortField = null,
+  defaultSortOrder = "asc", // "asc" | "desc"
   ...rest
 }) {
+  const [sortField, setSortField] = useState(defaultSortField);
+  const [sortOrder, setSortOrder] = useState(defaultSortOrder);
+
+  const cardBg = useColorModeValue("white", "gray.850");
+  const borderColor = useColorModeValue("gray.200", "gray.700");
+  const rowHoverBg = useColorModeValue("teal.50", "rgba(15, 118, 110, 0.12)");
+
+  const handleSort = (key) => {
+    if (!sortable) return;
+    if (sortField === key) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(key);
+      setSortOrder("asc");
+    }
+  };
+
+  const sortedRows = useMemo(() => {
+    if (!sortField) return rows;
+    return [...rows].sort((a, b) => {
+      const valA = a[sortField];
+      const valB = b[sortField];
+      if (valA == null) return 1;
+      if (valB == null) return -1;
+      if (typeof valA === "number" && typeof valB === "number") {
+        return sortOrder === "asc" ? valA - valB : valB - valA;
+      }
+      return sortOrder === "asc"
+        ? String(valA).localeCompare(String(valB))
+        : String(valB).localeCompare(String(valA));
+    });
+  }, [rows, sortField, sortOrder]);
+
   const colCount = columns.length + (showIndex ? 1 : 0);
   const skeletonRows = Math.min(5, (pagination?.rowsPerPage ?? 10) || 5);
 
@@ -101,9 +134,10 @@ export default function DataTable({
   };
 
   const cellOf = (col, row, index) => {
-    if (col.cell) return col.cell(row, index, rows);
+    if (col.cell) return col.cell(row, index, sortedRows);
     const value = row?.[col.key];
-    return value == null || value === "" ? "—" : String(value);
+    if (value == null || value === "") return "—";
+    return String(value);
   };
 
   const tdOf = (col) => ({
@@ -120,12 +154,22 @@ export default function DataTable({
     return i + 1;
   };
 
+  const shouldShowPagination =
+    pagination &&
+    pagination.totalPages > 1 &&
+    (!pagination.totalRows || pagination.totalRows > (pagination.rowsPerPage || 10));
+
   return (
     <Box
       display="flex"
       flexDirection="column"
       flex={1}
       minH={0}
+      borderRadius="12px"
+      border="1px solid"
+      borderColor={borderColor}
+      bg={cardBg}
+      boxShadow="0 1px 2px 0 rgba(0, 0, 0, 0.03)"
       overflow="hidden"
       {...rest}
     >
@@ -134,36 +178,62 @@ export default function DataTable({
         css={scrollbarStyles}
         flex={1}
         minH={0}
-        display={{ base: "block" }}
+        maxH={maxHeight}
       >
         <Table
           variant="simple"
           size="sm"
-          bg="white"
           position="relative"
           {...tableProps}
         >
-          <Thead>
+          <Thead bg="gray.50">
             <Tr>
               {showIndex && (
-                <Th {...thOf({ width: "56px" })} textAlign="center">
+                <Th {...thOf({ width: "48px" })} textAlign="center">
                   #
                 </Th>
               )}
-              {columns.map((col) => (
-                <Th key={col.key || col.label} {...thOf(col)}>
-                  {col.label}
-                </Th>
-              ))}
+              {columns.map((col) => {
+                const isCurrentSort = sortField === col.key;
+                const canSort = sortable && col.sortable !== false && col.key;
+
+                return (
+                  <Th
+                    key={col.key || col.label}
+                    {...thOf(col)}
+                    cursor={canSort ? "pointer" : "default"}
+                    onClick={canSort ? () => handleSort(col.key) : undefined}
+                    _hover={canSort ? { color: "#0F766E" } : undefined}
+                    userSelect="none"
+                  >
+                    <HStack spacing={1} justify={col.align === "right" ? "flex-end" : "flex-start"}>
+                      <Box as="span">{col.label}</Box>
+                      {canSort && (
+                        <Icon
+                          as={
+                            isCurrentSort
+                              ? sortOrder === "asc"
+                                ? FaSortUp
+                                : FaSortDown
+                              : FaSort
+                          }
+                          boxSize={2.5}
+                          color={isCurrentSort ? "#0F766E" : "gray.300"}
+                        />
+                      )}
+                    </HStack>
+                  </Th>
+                );
+              })}
             </Tr>
           </Thead>
           <Tbody>
             {isLoading ? (
               Array.from({ length: skeletonRows }).map((_, i) => (
-                <Tr key={`skeleton-${i}`}>
+                <Tr key={`skeleton-${i}`} h="56px">
                   {showIndex && (
                     <Td {...TD_BASE} textAlign="center">
-                      <Skeleton height="14px" width="24px" mx="auto" />
+                      <Skeleton height="14px" width="20px" mx="auto" />
                     </Td>
                   )}
                   {columns.map((col) => (
@@ -173,35 +243,54 @@ export default function DataTable({
                   ))}
                 </Tr>
               ))
-            ) : rows.length === 0 ? (
+            ) : sortedRows.length === 0 ? (
               <Tr>
                 <Td colSpan={colCount} p={0} border="none">
                   <Flex
-                    py={10}
+                    py={12}
                     justify="center"
                     align="center"
                     direction="column"
                     color="gray.400"
                   >
-                    <Icon as={emptyIcon} boxSize={8} mb={2} />
-                    <Text fontWeight="medium">{emptyTitle}</Text>
+                    <Icon as={emptyIcon} boxSize={8} mb={2} color="gray.300" />
+                    <Text fontWeight="600" fontSize="sm" color="gray.600">
+                      {emptyTitle}
+                    </Text>
                     {emptyDescription && (
-                      <Text fontSize="sm" mt={1}>
+                      <Text fontSize="xs" mt={1} color="gray.400">
                         {emptyDescription}
                       </Text>
                     )}
-                    {emptyAction}
+                    {emptyAction && <Box mt={3}>{emptyAction}</Box>}
                   </Flex>
                 </Td>
               </Tr>
             ) : (
-              rows.map((row, i) => (
+              sortedRows.map((row, i) => (
                 <Tr
                   key={keyExtractor ? keyExtractor(row, i) : i}
-                  _hover={{ bg: "brandAlpha.10" }}
+                  minH="56px"
+                  _hover={{ bg: onRowClick ? rowHoverBg : "gray.50" }}
+                  cursor={onRowClick ? "pointer" : undefined}
+                  transition="background-color 0.15s ease"
+                  onClick={
+                    onRowClick
+                      ? (e) => {
+                          if (
+                            e.target.closest(
+                              "button, a, input, select, textarea, [role='button'], [role='menuitem'], [role='menu']"
+                            )
+                          ) {
+                            return;
+                          }
+                          onRowClick(row, i);
+                        }
+                      : undefined
+                  }
                 >
                   {showIndex && (
-                    <Td {...TD_BASE} textAlign="center" color="gray.500" isTruncated>
+                    <Td {...TD_BASE} textAlign="center" color="gray.400" fontSize="2xs">
                       {rowIndex(i)}
                     </Td>
                   )}
@@ -216,20 +305,23 @@ export default function DataTable({
           </Tbody>
         </Table>
       </Box>
-      {pagination && (
-        <TablePagination
-          page={pagination.page}
-          totalPages={pagination.totalPages}
-          totalRows={pagination.totalRows}
-          indexOfFirst={pagination.indexOfFirst}
-          indexOfLast={pagination.indexOfLast}
-          rowsPerPage={pagination.rowsPerPage}
-          onPageChange={pagination.onPageChange}
-          onRowsPerPageChange={pagination.onRowsPerPageChange}
-          rowsPerPageOptions={pagination.rowsPerPageOptions}
-          label={pagination.label}
-          showRowsPerPage={pagination.showRowsPerPage}
-        />
+
+      {shouldShowPagination && (
+        <Box borderTop="1px solid" borderColor={borderColor}>
+          <TablePagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalRows={pagination.totalRows}
+            indexOfFirst={pagination.indexOfFirst}
+            indexOfLast={pagination.indexOfLast}
+            rowsPerPage={pagination.rowsPerPage}
+            onPageChange={pagination.onPageChange}
+            onRowsPerPageChange={pagination.onRowsPerPageChange}
+            rowsPerPageOptions={pagination.rowsPerPageOptions}
+            label={pagination.label}
+            showRowsPerPage={pagination.showRowsPerPage}
+          />
+        </Box>
       )}
     </Box>
   );
@@ -244,6 +336,7 @@ DataTable.propTypes = {
       width: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       minWidth: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
       truncate: PropTypes.bool,
+      sortable: PropTypes.bool,
       cell: PropTypes.func,
       thProps: PropTypes.object,
       tdProps: PropTypes.object,
@@ -273,4 +366,8 @@ DataTable.propTypes = {
   }),
   maxHeight: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   tableProps: PropTypes.object,
+  onRowClick: PropTypes.func,
+  sortable: PropTypes.bool,
+  defaultSortField: PropTypes.string,
+  defaultSortOrder: PropTypes.oneOf(["asc", "desc"]),
 };

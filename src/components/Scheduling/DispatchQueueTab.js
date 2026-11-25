@@ -54,6 +54,7 @@ import {
 import { MdRefresh } from "react-icons/md";
 import { useAppToast } from "components/feedback";
 import StatusBadge from "components/common/StatusBadge";
+import { TableSkeleton } from "components/common";
 import TablePagination from "components/common/TablePagination";
 import ConfirmActionModal from "components/common/ConfirmActionModal";
 import {
@@ -375,14 +376,9 @@ export default function DispatchQueueTab({
           {[0, 1].map((tabIdx) => (
             <TabPanel key={tabIdx} px={0} py={2}>
               {loading ? (
-                <Center py={16}>
-                  <VStack spacing={3}>
-                    <Spinner size="lg" color="#008080" thickness="3px" />
-                    <Text fontSize="xs" color="gray.500">
-                      Loading {tabIdx === 0 ? "active in-flight" : "failed"} queue jobs...
-                    </Text>
-                  </VStack>
-                </Center>
+                <Box py={4}>
+                  <TableSkeleton rows={6} columns={6} />
+                </Box>
               ) : filteredRows.length === 0 ? (
                 <Center py={16}>
                   <VStack spacing={3}>

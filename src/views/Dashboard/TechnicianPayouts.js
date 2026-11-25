@@ -433,7 +433,7 @@ export default function TechnicianPayouts() {
   };
 
   return (
-    <Box pt={{ base: "120px", md: "80px" }} px={{ base: "16px", md: "24px" }} pb="40px">
+    <Box pt={0} px={0} pb="40px">
       <VStack spacing={6} align="stretch">
         {/* ================= 1. PAGE HEADER ================= */}
         <Flex
@@ -450,17 +450,6 @@ export default function TechnicianPayouts() {
 
           {/* Header Action Buttons */}
           <HStack spacing={3} flexWrap="wrap">
-            <Button
-              size="sm"
-              variant="brand"
-              borderRadius="10px"
-              fontWeight="800"
-              leftIcon={<FaPaperPlane size={13} />}
-              onClick={() => handleOpenSendMoney()}
-            >
-              Pay Directly
-            </Button>
-
             {/* Payout Policy & Limits Modal Button */}
             <Button
               size="sm"
@@ -506,6 +495,14 @@ export default function TechnicianPayouts() {
         </Flex>
 
         {/* ================= 2. CONSOLE MODE SWITCHER ================= */}
+        <Box
+          position={{ base: "static", md: "sticky" }}
+          top={{ base: "0", md: "64px" }}
+          zIndex="900"
+          bg="gray.50"
+          pt={{ base: 1, md: 2 }}
+          pb={{ base: 2, md: 3 }}
+        >
         <HStack
           spacing={2}
           p={1.5}
@@ -567,26 +564,11 @@ export default function TechnicianPayouts() {
             </HStack>
           </Button>
         </HStack>
+        </Box>
 
         {/* ================= MODE A: DISBURSEMENT QUEUE ================= */}
         {consoleMode === "queue" && (
           <VStack spacing={6} align="stretch">
-            {/* SUMMARY METRICS CARDS */}
-            <PayoutSummaryCards
-              walletSummary={reduxWalletSummary}
-              autoPayoutSummary={reduxAutoSummary}
-              activeTab={activeTabId}
-              onSelectTab={handleTabSelect}
-              loading={loading && !reduxWalletSummary}
-            />
-
-            {/* VISUAL PAYMENT FLOW PIPELINE */}
-            <PayoutFlowPipeline
-              activeStage={activeTabId}
-              onSelectStage={handleTabSelect}
-              counts={tabCounts}
-            />
-
             {/* MAIN CONTENT CARD */}
             <Card {...containerCardStyle}>
               <CardBody p={{ base: "16px", md: "24px" }}>

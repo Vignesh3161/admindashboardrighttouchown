@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import AppModal from "components/common/AppModal";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import ReactApexChart from "react-apexcharts";
 import {
   createCategories,
@@ -54,6 +54,7 @@ import {
   Image,
   Textarea,
   Spinner,
+  Skeleton,
   Center,
   SimpleGrid,
   Checkbox,
@@ -76,6 +77,7 @@ import { MobileCard, MobileCardActions } from "components/common/MobileCard";
 import DataTable from "components/common/DataTable";
 import RefreshButton from "components/common/RefreshButton";
 import StatusBadge from "components/common/StatusBadge";
+import { TableSkeleton } from "components/common";
 import ConfirmActionModal from "components/common/ConfirmActionModal";
 import ErrorState from "components/feedback/ErrorState";
 import { useAppToast } from "components/feedback";
@@ -156,9 +158,26 @@ export default function ServiceManagement() {
   const [polygonSubmitting, setPolygonSubmitting] = useState(false);
   const [isRemovePolygonConfirmOpen, setIsRemovePolygonConfirmOpen] = useState(false);
   const [removePolygonError, setRemovePolygonError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const location = useLocation();
+  const [searchTerm, setSearchTerm] = useState(() => {
+    const q = new URLSearchParams(location.search).get("search");
+    return q ? decodeURIComponent(q) : "";
+  });
   const [categorySearch, setCategorySearch] = useState("");
-  const [serviceSearch, setServiceSearch] = useState("");
+  const [serviceSearch, setServiceSearch] = useState(() => {
+    const q = new URLSearchParams(location.search).get("search");
+    return q ? decodeURIComponent(q) : "";
+  });
+
+  useEffect(() => {
+    const q = new URLSearchParams(location.search).get("search");
+    if (q !== null && q !== undefined) {
+      const decoded = decodeURIComponent(q);
+      setSearchTerm(decoded);
+      setServiceSearch(decoded);
+      setCurrentPage(1);
+    }
+  }, [location.search]);
   const [serviceCategoryFilter, setServiceCategoryFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
@@ -214,10 +233,10 @@ export default function ServiceManagement() {
     serviceImages: [],
     serviceHighlights: [],
     serviceWarranty: "",
-    cancellationPolicy: "",
     requiresSpareParts: false,
     zoneRestricted: false,
-    duration: "",
+    duration: "60 mins",
+    durationMinutes: 60,
     siteVisitRequired: true,
     isActive: true,
     isPopular: false,
@@ -916,10 +935,10 @@ export default function ServiceManagement() {
         }).filter(img => typeof img === 'string' && img.length > 0 && !img.startsWith('blob:')) || [],
         serviceHighlights: newService.serviceHighlights || [],
         serviceWarranty: newService.serviceWarranty?.trim() || "",
-        cancellationPolicy: newService.cancellationPolicy?.trim() || "",
         requiresSpareParts: newService.requiresSpareParts || false,
         zoneRestricted: newService.zoneRestricted || false,
-        duration: newService.duration?.trim() || "",
+        duration: newService.duration?.trim() || (newService.durationMinutes ? `${newService.durationMinutes} mins` : "60 mins"),
+        durationMinutes: parseInt(newService.durationMinutes, 10) || 60,
         siteVisitRequired: newService.siteVisitRequired !== false,
         isActive: newService.isActive !== false,
         isPopular: newService.isPopular || false,
@@ -1071,10 +1090,10 @@ export default function ServiceManagement() {
       serviceImages: service.serviceImages || [],
       serviceHighlights: service.serviceHighlights || [],
       serviceWarranty: service.serviceWarranty || "",
-      cancellationPolicy: service.cancellationPolicy || "",
       requiresSpareParts: service.requiresSpareParts || false,
       zoneRestricted: service.zoneRestricted || false,
-      duration: service.duration || "",
+      duration: service.duration || (service.durationMinutes ? `${service.durationMinutes} mins` : "60 mins"),
+      durationMinutes: service.durationMinutes || 60,
       siteVisitRequired: service.siteVisitRequired !== false,
       isActive: service.isActive !== false,
       isPopular: service.isPopular || false,
@@ -1198,11 +1217,8 @@ export default function ServiceManagement() {
   // Loading component for tables
   const TableLoader = ({ columns = 6 }) => (
     <Tr>
-      <Td colSpan={columns} textAlign="center" py={4}>
-        <Center>
-          <Spinner size="md" color={customColor} mr={3} />
-          <Text fontSize="sm">Loading data...</Text>
-        </Center>
+      <Td colSpan={columns} p={4}>
+        <TableSkeleton rows={4} columns={columns} />
       </Td>
     </Tr>
   );
@@ -1299,9 +1315,9 @@ export default function ServiceManagement() {
     return (
       <Flex
         flexDirection="column"
-        pt={{ base: "120px", md: "75px" }}
-        height={{ base: "calc(100vh - 20px)", md: "calc(100vh - 40px)" }}
-        overflow="hidden"
+        pt={0}
+        minH="100%"
+        w="100%"
         css={globalScrollbarStyles}
       >
         <Card
@@ -1423,7 +1439,7 @@ export default function ServiceManagement() {
                         position="relative"
                       >
                         {isSubmitting ? (
-                          <Spinner size="sm" color={customColor} />
+                          <Skeleton h="20px" w="20px" borderRadius="full" />
                         ) : (
                           <>
                             <Input
@@ -2071,7 +2087,7 @@ export default function ServiceManagement() {
                     </FormControl>
 
                     {/* Additional Details */}
-                    <Grid templateColumns={["1fr", "1fr 1fr"]} gap={4} mb={4}>
+                    <Box mb={4}>
                       <FormControl>
                         <FormLabel color="gray.700" fontSize="sm">Service Warranty</FormLabel>
                         <Input
@@ -2085,21 +2101,7 @@ export default function ServiceManagement() {
                           size="sm"
                         />
                       </FormControl>
-
-                      <FormControl>
-                        <FormLabel color="gray.700" fontSize="sm">Cancellation Policy</FormLabel>
-                        <Input
-                          value={newService.cancellationPolicy}
-                          onChange={(e) => setNewService({ ...newService, cancellationPolicy: e.target.value })}
-                          placeholder="Enter cancellation policy"
-                          borderColor={`${customColor}50`}
-                          _hover={{ borderColor: customColor }}
-                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                          bg="white"
-                          size="sm"
-                        />
-                      </FormControl>
-                    </Grid>
+                    </Box>
 
                     {/* Checkboxes */}
                     <Grid templateColumns={["1fr", "1fr 1fr 1fr"]} gap={4} mb={4}>
@@ -2173,20 +2175,60 @@ export default function ServiceManagement() {
                       </FormControl>
                     </Grid>
 
-                    {/* Duration */}
-                    <FormControl mb={4}>
-                      <FormLabel color="gray.700" fontSize="sm">Duration</FormLabel>
-                      <Input
-                        value={newService.duration}
-                        onChange={(e) => setNewService({ ...newService, duration: e.target.value })}
-                        placeholder="e.g., 1–3 hours"
-                        borderColor={`${customColor}50`}
-                        _hover={{ borderColor: customColor }}
-                        _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
-                        bg="white"
-                        size="sm"
-                      />
-                    </FormControl>
+                    {/* Service Duration & Scheduling Estimation */}
+                    <Grid templateColumns={["1fr", "1fr 1fr"]} gap={4} mb={4}>
+                      <FormControl isRequired>
+                        <FormLabel color="gray.700" fontSize="sm">
+                          Estimated Service Duration (Minutes)
+                        </FormLabel>
+                        <Input
+                          type="number"
+                          min={15}
+                          max={480}
+                          step={15}
+                          value={newService.durationMinutes !== undefined ? newService.durationMinutes : 60}
+                          onChange={(e) => {
+                            const mins = parseInt(e.target.value, 10) || 15;
+                            const autoLabel = mins >= 60 
+                              ? (mins % 60 === 0 ? `${mins / 60} hr${mins / 60 > 1 ? 's' : ''}` : `${Math.floor(mins / 60)} hr ${mins % 60} mins`)
+                              : `${mins} mins`;
+                            setNewService({
+                              ...newService,
+                              durationMinutes: mins,
+                              duration: autoLabel,
+                            });
+                          }}
+                          placeholder="e.g., 60"
+                          borderColor={`${customColor}50`}
+                          _hover={{ borderColor: customColor }}
+                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                          bg="white"
+                          size="sm"
+                        />
+                        <Text fontSize="xs" color="gray.500" mt={1}>
+                          Used for scheduling slot feasibility, booking overlap checks & travel buffer (15–480 mins).
+                        </Text>
+                      </FormControl>
+
+                      <FormControl>
+                        <FormLabel color="gray.700" fontSize="sm">
+                          Display Duration (Customer Label)
+                        </FormLabel>
+                        <Input
+                          value={newService.duration}
+                          onChange={(e) => setNewService({ ...newService, duration: e.target.value })}
+                          placeholder="e.g., 60 mins or 1–2 hours"
+                          borderColor={`${customColor}50`}
+                          _hover={{ borderColor: customColor }}
+                          _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                          bg="white"
+                          size="sm"
+                        />
+                        <Text fontSize="xs" color="gray.500" mt={1}>
+                          Customer-facing time estimate displayed in the app.
+                        </Text>
+                      </FormControl>
+                    </Grid>
 
                     {/* Image Upload */}
                     <FormControl mb={4}>
@@ -2282,17 +2324,21 @@ export default function ServiceManagement() {
   return (
     <Flex
       flexDirection="column"
-      pt={{ base: "120px", md: "45px" }}
-      height={{ base: "calc(100vh - 20px)", md: "calc(100vh - 40px)" }}
-      overflow="hidden"
+      pt={0}
+      minH="100%"
+      w="100%"
       css={globalScrollbarStyles}
     >
       {/* Fixed Statistics Cards */}
       <Box
+        position={{ base: "static", md: "sticky" }}
+        top={{ base: "0", md: "64px" }}
+        zIndex="900"
+        bg="gray.50"
         flexShrink={0}
         p={{ base: 1, md: 4 }}
-        pb={0}
-        mt={{ base: 0, md: 0 }}
+        pt={{ base: 1, md: 2 }}
+        pb={{ base: 2, md: 3 }}
       >
         <Grid
           templateColumns={{ base: "1fr 1fr", md: "1fr 1fr 1fr 1fr" }}
@@ -2315,7 +2361,7 @@ export default function ServiceManagement() {
                     All Categories
                   </StatLabel>
                   <StatNumber fontSize={{ base: "md", md: "lg" }} color={textColor} fontWeight="800">
-                    {isLoadingCategories ? <Spinner size="xs" /> : categories.length}
+                    {isLoadingCategories ? <Skeleton h="20px" w="40px" display="inline-block" /> : categories.length}
                   </StatNumber>
                 </Stat>
                 <IconBox h={{ base: "36px", md: "42px" }} w={{ base: "36px", md: "42px" }} flexShrink={0} ml={2} {...getSkeuomorphicIconBoxStyle(customColor)}>
@@ -2341,7 +2387,7 @@ export default function ServiceManagement() {
                     All Services
                   </StatLabel>
                   <StatNumber fontSize={{ base: "md", md: "lg" }} color={textColor} fontWeight="800">
-                    {isLoadingServices ? <Spinner size="xs" /> : services.length}
+                    {isLoadingServices ? <Skeleton h="20px" w="40px" display="inline-block" /> : services.length}
                   </StatNumber>
                 </Stat>
                 <IconBox h={{ base: "36px", md: "42px" }} w={{ base: "36px", md: "42px" }} flexShrink={0} ml={2} {...getSkeuomorphicIconBoxStyle("blue.500")}>
@@ -2367,7 +2413,7 @@ export default function ServiceManagement() {
                     Active Services
                   </StatLabel>
                   <StatNumber fontSize={{ base: "md", md: "lg" }} color={textColor} fontWeight="800">
-                    {isLoadingServices ? <Spinner size="xs" /> : stats.activeServices}
+                    {isLoadingServices ? <Skeleton h="20px" w="40px" display="inline-block" /> : stats.activeServices}
                   </StatNumber>
                   <Text fontSize="10px" color="gray.500" mt={0.5}>
                     {stats.popularServices} popular
@@ -2396,7 +2442,7 @@ export default function ServiceManagement() {
                     Total Revenue
                   </StatLabel>
                   <StatNumber fontSize={{ base: "md", md: "lg" }} color="green.600" fontWeight="800">
-                    {isLoadingServices ? <Spinner size="xs" /> : `₹${stats.totalRevenue.toLocaleString()}`}
+                    {isLoadingServices ? <Skeleton h="20px" w="40px" display="inline-block" /> : `₹${stats.totalRevenue.toLocaleString()}`}
                   </StatNumber>
                   <Text fontSize="10px" color="green.600" mt={0.5}>
                     {services.length} services
@@ -2560,10 +2606,9 @@ export default function ServiceManagement() {
                 />
               </Box>
             ) : isLoadingData ? (
-              <Flex justify="center" align="center" py={6} flex="1">
-                <Spinner size="lg" color={customColor} />
-                <Text ml={3} fontSize="sm">Loading data...</Text>
-              </Flex>
+              <Box p={4} flex="1">
+                <TableSkeleton rows={8} columns={6} />
+              </Box>
             ) : (
               <Box display="flex" flexDirection="column" overflow="hidden">
                 {/* Categories Table */}
@@ -3666,8 +3711,8 @@ export default function ServiceManagement() {
                     <Text fontSize="md" mt={1}>{selectedService.serviceWarranty || "Not specified"}</Text>
                   </Box>
                   <Box>
-                    <Text fontWeight="bold" color="gray.600" fontSize="sm">Cancellation Policy:</Text>
-                    <Text fontSize="md" mt={1}>{selectedService.cancellationPolicy || "Not specified"}</Text>
+                    <Text fontWeight="bold" color="gray.600" fontSize="sm">Estimated Duration:</Text>
+                    <Text fontSize="md" mt={1}>{selectedService.durationMinutes ? `${selectedService.durationMinutes} mins` : (selectedService.duration || "60 mins")}</Text>
                   </Box>
                   <Box>
                     <Text fontWeight="bold" color="gray.600" fontSize="sm">Requires Spare Parts:</Text>

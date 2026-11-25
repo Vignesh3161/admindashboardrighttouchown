@@ -18,6 +18,7 @@ export function SearchBar(props) {
       <InputLeftElement
         children={
           <IconButton
+            aria-label='Search'
             bg='inherit'
             borderRadius='inherit'
             _hover={{ bg: "transparent" }}

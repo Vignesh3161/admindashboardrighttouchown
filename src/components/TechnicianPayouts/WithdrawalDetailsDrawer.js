@@ -45,6 +45,7 @@ import {
 import { useAppToast } from "components/feedback";
 import { getWithdrawalDetails } from "api/wallet";
 import PayoutStatusBadge from "./PayoutStatusBadge";
+import { DrawerSkeleton } from "components/common";
 import FinancialBreakdown from "./FinancialBreakdown";
 
 export default function WithdrawalDetailsDrawer({
@@ -187,12 +188,7 @@ export default function WithdrawalDetailsDrawer({
 
         <DrawerBody p={6}>
           {loading ? (
-            <Center py={16}>
-              <VStack spacing={3}>
-                <Spinner size="lg" color="teal.500" thickness="3px" />
-                <Text fontSize="xs" color="gray.500">Loading audit & payout details...</Text>
-              </VStack>
-            </Center>
+            <DrawerSkeleton />
           ) : errorMsg ? (
             <Center py={16}>
               <VStack spacing={3}>

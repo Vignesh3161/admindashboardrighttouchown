@@ -14,6 +14,7 @@ import ErrorState from "components/feedback/ErrorState";
 import AppModal from "components/common/AppModal";
 import RefreshButton from "components/common/RefreshButton";
 import StatusBadge from "components/common/StatusBadge";
+import { TableSkeleton, FormSkeleton } from "components/common";
 import {
   Box,
   Button,
@@ -84,6 +85,19 @@ export default function RewardsManagement() {
     minEligiblePaise: "",
     maxCoinsPerBooking: "",
     notes: "",
+    // Technician Rewards Governance
+    techCoinsPerRupee: 100,
+    techRewardsEnabled: true,
+    onTimeArrivalBonusCoins: 50,
+    onTimeArrivalEnabled: true,
+    fiveStarRatingBonusCoins: 100,
+    fiveStarRatingEnabled: true,
+    weeklyMilestoneBonusCoins: 500,
+    weeklyMilestoneThresholdJobs: 20,
+    weeklyMilestoneEnabled: true,
+    zeroCancellationStreakBonusCoins: 250,
+    zeroCancellationStreakDays: 7,
+    zeroCancellationStreakEnabled: true,
   });
 
   // Wallets State
@@ -127,6 +141,7 @@ export default function RewardsManagement() {
     const pol = p?.result ?? p?.data ?? p ?? null;
     setPolicy(pol);
     if (pol && typeof pol === "object") {
+      const tech = pol.technicianRewards || {};
       setForm({
         rewardRateBps: pol.rewardRateBps ?? "",
         expiryMonths: pol.expiryMonths ?? "",
@@ -135,6 +150,18 @@ export default function RewardsManagement() {
         minEligiblePaise: pol.minEligiblePaise ?? "",
         maxCoinsPerBooking: pol.maxCoinsPerBooking ?? "",
         notes: pol.notes ?? "",
+        techCoinsPerRupee: tech.coinsPerRupee ?? 100,
+        techRewardsEnabled: tech.enabled !== false,
+        onTimeArrivalBonusCoins: tech.onTimeArrivalBonusCoins ?? 50,
+        onTimeArrivalEnabled: tech.onTimeArrivalEnabled !== false,
+        fiveStarRatingBonusCoins: tech.fiveStarRatingBonusCoins ?? 100,
+        fiveStarRatingEnabled: tech.fiveStarRatingEnabled !== false,
+        weeklyMilestoneBonusCoins: tech.weeklyMilestoneBonusCoins ?? 500,
+        weeklyMilestoneThresholdJobs: tech.weeklyMilestoneThresholdJobs ?? 20,
+        weeklyMilestoneEnabled: tech.weeklyMilestoneEnabled !== false,
+        zeroCancellationStreakBonusCoins: tech.zeroCancellationStreakBonusCoins ?? 250,
+        zeroCancellationStreakDays: tech.zeroCancellationStreakDays ?? 7,
+        zeroCancellationStreakEnabled: tech.zeroCancellationStreakEnabled !== false,
       });
     }
     setMetrics(m?.result ?? m?.data ?? m ?? null);
@@ -231,20 +258,35 @@ export default function RewardsManagement() {
   // Lazy tab switcher
   useEffect(() => {
     if (tabIndex === 1) loadWallets();
-    else if (tabIndex === 2) loadTransactions();
-    else if (tabIndex === 3) loadRedemptions();
-    else if (tabIndex === 4) loadReconciliation();
+    else if (tabIndex === 3 || tabIndex === 4) loadTransactions();
+    else if (tabIndex === 5) loadRedemptions();
+    else if (tabIndex === 6) loadReconciliation();
   }, [tabIndex, loadWallets, loadTransactions, loadRedemptions, loadReconciliation]);
 
   const savePolicy = async () => {
     setSavingPolicy(true);
     const payload = {
-      ...form,
       rewardRateBps: Number(form.rewardRateBps) || undefined,
       expiryMonths: Number(form.expiryMonths) || undefined,
       maxRedemptionPct: Number(form.maxRedemptionPct) || undefined,
+      earningEnabled: form.earningEnabled,
       minEligiblePaise: Number(form.minEligiblePaise) || undefined,
       maxCoinsPerBooking: Number(form.maxCoinsPerBooking) || undefined,
+      notes: form.notes,
+      technicianRewards: {
+        enabled: form.techRewardsEnabled,
+        coinsPerRupee: Number(form.techCoinsPerRupee || 100),
+        onTimeArrivalBonusCoins: Number(form.onTimeArrivalBonusCoins || 0),
+        onTimeArrivalEnabled: form.onTimeArrivalEnabled,
+        fiveStarRatingBonusCoins: Number(form.fiveStarRatingBonusCoins || 0),
+        fiveStarRatingEnabled: form.fiveStarRatingEnabled,
+        weeklyMilestoneBonusCoins: Number(form.weeklyMilestoneBonusCoins || 0),
+        weeklyMilestoneThresholdJobs: Number(form.weeklyMilestoneThresholdJobs || 20),
+        weeklyMilestoneEnabled: form.weeklyMilestoneEnabled,
+        zeroCancellationStreakBonusCoins: Number(form.zeroCancellationStreakBonusCoins || 0),
+        zeroCancellationStreakDays: Number(form.zeroCancellationStreakDays || 7),
+        zeroCancellationStreakEnabled: form.zeroCancellationStreakEnabled,
+      },
     };
     const { error } = await createRewardPolicy(payload);
     setSavingPolicy(false);
@@ -252,14 +294,14 @@ export default function RewardsManagement() {
       toast.error(error, { title: "Save failed", duration: 3000, isClosable: true });
       return;
     }
-    toast({ title: "Reward policy saved successfully", status: "success", duration: 2500, isClosable: true });
+    toast.success("Reward policy saved successfully");
     loadOverview();
   };
 
   const idOf = (r) => r?._id || r?.id || r?.customerId || "—";
 
   return (
-    <Box pt={{ base: "120px", md: "75px" }}>
+    <Box pt={0}>
       {loadError && (
         <Box mb={4}>
           <ErrorState
@@ -296,8 +338,10 @@ export default function RewardsManagement() {
         <CardBody>
           <Tabs index={tabIndex} onChange={setTabIndex} colorScheme="teal" isLazy>
             <TabList overflowX="auto" overflowY="hidden" py={1}>
-              <Tab fontWeight="semibold">Reward Policy</Tab>
+              <Tab fontWeight="semibold">Customer Reward Policy</Tab>
               <Tab fontWeight="semibold">Customer Wallets</Tab>
+              <Tab fontWeight="semibold">Technician Rewards Setup</Tab>
+              <Tab fontWeight="semibold">Technician Reward Ledger</Tab>
               <Tab fontWeight="semibold">Transactions Ledger</Tab>
               <Tab fontWeight="semibold">Redemptions Audit</Tab>
               <Tab fontWeight="semibold">System Reconciliation</Tab>
@@ -307,7 +351,7 @@ export default function RewardsManagement() {
               {/* Tab 1: Reward Policy */}
               <TabPanel px={0} pt={4}>
                 {loading ? (
-                  <Center py={10}><Spinner color={BRAND} /></Center>
+                  <Box py={4}><FormSkeleton fields={6} /></Box>
                 ) : (
                   <Box>
                     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={6}>
@@ -415,7 +459,7 @@ export default function RewardsManagement() {
                 </Flex>
 
                 {walletsLoading ? (
-                  <Center py={10}><Spinner color={BRAND} /></Center>
+                  <Box py={4}><TableSkeleton rows={6} columns={6} /></Box>
                 ) : wallets.length === 0 ? (
                   <Center py={10}><Text color="gray.500">No customer reward wallets found.</Text></Center>
                 ) : (
@@ -463,7 +507,260 @@ export default function RewardsManagement() {
                 )}
               </TabPanel>
 
-              {/* Tab 3: Transactions Ledger */}
+              {/* Tab 3: Technician Rewards Setup */}
+              <TabPanel px={0} pt={4}>
+                {loading ? (
+                  <Box py={4}><FormSkeleton fields={6} /></Box>
+                ) : (
+                  <Box>
+                    <Box p={4} mb={6} borderRadius="xl" bg="teal.50" border="1px solid" borderColor="teal.200">
+                      <Flex justify="space-between" align="center" flexWrap="wrap" gap={3}>
+                        <Box>
+                          <Text fontSize="md" fontWeight="bold" color="teal.800">
+                            Technician Reward & Incentive Governance
+                          </Text>
+                          <Text fontSize="xs" color="teal.600">
+                            Configure automatic coin triggers for punctuality, 5-star ratings, milestones, and streak bonuses.
+                          </Text>
+                        </Box>
+                        <FormControl display="flex" alignItems="center" w="auto">
+                          <FormLabel htmlFor="tech-rewards-master" mb="0" fontSize="sm" fontWeight="bold">
+                            Enable Tech Rewards:
+                          </FormLabel>
+                          <Switch
+                            id="tech-rewards-master"
+                            colorScheme="teal"
+                            isChecked={form.techRewardsEnabled}
+                            onChange={(e) => setForm((f) => ({ ...f, techRewardsEnabled: e.target.checked }))}
+                          />
+                        </FormControl>
+                      </Flex>
+                    </Box>
+
+                    <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} mb={6}>
+                      {/* 1. Value in INR */}
+                      <Box p={4} borderRadius="xl" border="1px solid" borderColor="gray.200" bg="white">
+                        <FormControl>
+                          <FormLabel fontSize="sm" fontWeight="bold">Coin Value in INR (Coins per ₹1)</FormLabel>
+                          <Input
+                            type="number"
+                            value={form.techCoinsPerRupee}
+                            onChange={(e) => setForm((f) => ({ ...f, techCoinsPerRupee: e.target.value }))}
+                            placeholder="e.g. 100 (100 coins = ₹1)"
+                          />
+                          <Text fontSize="2xs" color="gray.500" mt={1}>
+                            Fixed conversion: 100 coins = ₹1 (1 coin = 1 paise of payout credit).
+                          </Text>
+                        </FormControl>
+                      </Box>
+
+                      {/* 2. On-Time Arrival Bonus */}
+                      <Box p={4} borderRadius="xl" border="1px solid" borderColor="gray.200" bg="white">
+                        <Flex justify="space-between" align="center" mb={2}>
+                          <FormLabel fontSize="sm" fontWeight="bold" mb={0}>On-Time Arrival Bonus</FormLabel>
+                          <Switch
+                            colorScheme="teal"
+                            isChecked={form.onTimeArrivalEnabled}
+                            onChange={(e) => setForm((f) => ({ ...f, onTimeArrivalEnabled: e.target.checked }))}
+                          />
+                        </Flex>
+                        <FormControl isDisabled={!form.onTimeArrivalEnabled}>
+                          <Input
+                            type="number"
+                            value={form.onTimeArrivalBonusCoins}
+                            onChange={(e) => setForm((f) => ({ ...f, onTimeArrivalBonusCoins: e.target.value }))}
+                            placeholder="Coins awarded (e.g. 50)"
+                          />
+                          <Text fontSize="2xs" color="gray.500" mt={1}>
+                            Coins automatically awarded when reaching within scheduled slot start.
+                          </Text>
+                        </FormControl>
+                      </Box>
+
+                      {/* 3. 5-Star Rating Reward */}
+                      <Box p={4} borderRadius="xl" border="1px solid" borderColor="gray.200" bg="white">
+                        <Flex justify="space-between" align="center" mb={2}>
+                          <FormLabel fontSize="sm" fontWeight="bold" mb={0}>5-Star Customer Rating Reward</FormLabel>
+                          <Switch
+                            colorScheme="teal"
+                            isChecked={form.fiveStarRatingEnabled}
+                            onChange={(e) => setForm((f) => ({ ...f, fiveStarRatingEnabled: e.target.checked }))}
+                          />
+                        </Flex>
+                        <FormControl isDisabled={!form.fiveStarRatingEnabled}>
+                          <Input
+                            type="number"
+                            value={form.fiveStarRatingBonusCoins}
+                            onChange={(e) => setForm((f) => ({ ...f, fiveStarRatingBonusCoins: e.target.value }))}
+                            placeholder="Coins awarded (e.g. 100)"
+                          />
+                          <Text fontSize="2xs" color="gray.500" mt={1}>
+                            Credited when customer awards a top 5-star rating on a completed job.
+                          </Text>
+                        </FormControl>
+                      </Box>
+
+                      {/* 4. Weekly Job Milestone Reward */}
+                      <Box p={4} borderRadius="xl" border="1px solid" borderColor="gray.200" bg="white">
+                        <Flex justify="space-between" align="center" mb={2}>
+                          <FormLabel fontSize="sm" fontWeight="bold" mb={0}>Weekly Job Milestone Reward</FormLabel>
+                          <Switch
+                            colorScheme="teal"
+                            isChecked={form.weeklyMilestoneEnabled}
+                            onChange={(e) => setForm((f) => ({ ...f, weeklyMilestoneEnabled: e.target.checked }))}
+                          />
+                        </Flex>
+                        <HStack spacing={3} isDisabled={!form.weeklyMilestoneEnabled}>
+                          <FormControl>
+                            <FormLabel fontSize="2xs" color="gray.500">Threshold Jobs</FormLabel>
+                            <Input
+                              type="number"
+                              value={form.weeklyMilestoneThresholdJobs}
+                              onChange={(e) => setForm((f) => ({ ...f, weeklyMilestoneThresholdJobs: e.target.value }))}
+                              placeholder="e.g. 20"
+                            />
+                          </FormControl>
+                          <FormControl>
+                            <FormLabel fontSize="2xs" color="gray.500">Bonus Coins</FormLabel>
+                            <Input
+                              type="number"
+                              value={form.weeklyMilestoneBonusCoins}
+                              onChange={(e) => setForm((f) => ({ ...f, weeklyMilestoneBonusCoins: e.target.value }))}
+                              placeholder="e.g. 500"
+                            />
+                          </FormControl>
+                        </HStack>
+                      </Box>
+
+                      {/* 5. Zero-Cancellation Streak Bonus */}
+                      <Box p={4} borderRadius="xl" border="1px solid" borderColor="gray.200" bg="white">
+                        <Flex justify="space-between" align="center" mb={2}>
+                          <FormLabel fontSize="sm" fontWeight="bold" mb={0}>Zero-Cancellation Streak Bonus</FormLabel>
+                          <Switch
+                            colorScheme="teal"
+                            isChecked={form.zeroCancellationStreakEnabled}
+                            onChange={(e) => setForm((f) => ({ ...f, zeroCancellationStreakEnabled: e.target.checked }))}
+                          />
+                        </Flex>
+                        <HStack spacing={3} isDisabled={!form.zeroCancellationStreakEnabled}>
+                          <FormControl>
+                            <FormLabel fontSize="2xs" color="gray.500">Consecutive Days</FormLabel>
+                            <Input
+                              type="number"
+                              value={form.zeroCancellationStreakDays}
+                              onChange={(e) => setForm((f) => ({ ...f, zeroCancellationStreakDays: e.target.value }))}
+                              placeholder="e.g. 7"
+                            />
+                          </FormControl>
+                          <FormControl>
+                            <FormLabel fontSize="2xs" color="gray.500">Streak Bonus Coins</FormLabel>
+                            <Input
+                              type="number"
+                              value={form.zeroCancellationStreakBonusCoins}
+                              onChange={(e) => setForm((f) => ({ ...f, zeroCancellationStreakBonusCoins: e.target.value }))}
+                              placeholder="e.g. 250"
+                            />
+                          </FormControl>
+                        </HStack>
+                      </Box>
+                    </SimpleGrid>
+
+                    <Flex justify="flex-end">
+                      <Button
+                        colorScheme="teal"
+                        isLoading={savingPolicy}
+                        onClick={savePolicy}
+                        px={8}
+                        borderRadius="lg"
+                      >
+                        Save Technician Reward Rules
+                      </Button>
+                    </Flex>
+                  </Box>
+                )}
+              </TabPanel>
+
+              {/* Tab 4: Technician Reward Ledger */}
+              <TabPanel px={0} pt={4}>
+                <Flex gap={3} mb={4} wrap="wrap" align="center" justify="space-between">
+                  <HStack spacing={3}>
+                    <Text fontSize="sm" fontWeight="bold" color="gray.700">
+                      Technician Coin Earning & Redemption History
+                    </Text>
+                  </HStack>
+                  <RefreshButton
+                    variant="ghost"
+                    label="Refresh ledger"
+                    isLoading={txLoading}
+                    onClick={loadTransactions}
+                    aria-label="Refresh ledger"
+                  />
+                </Flex>
+
+                {txLoading ? (
+                  <Box py={4}><TableSkeleton rows={6} columns={6} /></Box>
+                ) : transactions.length === 0 ? (
+                  <Center py={10}><Text color="gray.500">No technician reward ledger entries recorded yet.</Text></Center>
+                ) : (
+                  <Box overflowX="auto" borderRadius="14px" border="1px solid" borderColor="gray.200">
+                    <Table variant="simple" size="sm">
+                      <Thead bg="gray.50">
+                        <Tr>
+                          <Th>Technician</Th>
+                          <Th>Transaction ID</Th>
+                          <Th>Type</Th>
+                          <Th isNumeric>Coins Earned / Redeemed</Th>
+                          <Th>Trigger Event / Booking</Th>
+                          <Th isNumeric>Resulting Balance</Th>
+                          <Th>Date & Time</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {transactions.map((tx, idx) => {
+                          const tech = tx.bookingId?.technicianId?.userId;
+                          const techName = tech ? `${tech.fname || ""} ${tech.lname || ""}`.trim() : (tx.technicianName || "Technician");
+                          const techPhone = tech?.mobileNumber || tx.technicianPhone || "—";
+                          const type = tx.type || tx.action || "EARN";
+                          const isCredit = type === "EARN" || type === "BONUS" || type === "MILESTONE";
+
+                          return (
+                            <Tr key={idOf(tx) + idx} _hover={{ bg: "gray.50" }}>
+                              <Td>
+                                <VStack align="flex-start" spacing={0}>
+                                  <Text fontSize="xs" fontWeight="700" color="gray.800">{techName}</Text>
+                                  <Text fontSize="3xs" color="gray.500">{techPhone}</Text>
+                                </VStack>
+                              </Td>
+                              <Td fontSize="xs" fontFamily="mono" color="gray.500">#{String(idOf(tx)).slice(-8)}</Td>
+                              <Td>
+                                <StatusBadge
+                                  colorScheme={isCredit ? "green" : "blue"}
+                                  label={type}
+                                  variant="subtle"
+                                />
+                              </Td>
+                              <Td fontWeight="bold" color={isCredit ? "green.600" : "blue.600"} isNumeric>
+                                {tx.coins ? (isCredit ? `+${tx.coins}` : `-${tx.coins}`) : "—"}
+                              </Td>
+                              <Td fontSize="xs">
+                                {tx.note || (tx.bookingId ? `Booking #${String(tx.bookingId._id || tx.bookingId).slice(-8)}` : "Milestone Achievement")}
+                              </Td>
+                              <Td fontSize="xs" fontWeight="bold" isNumeric>
+                                {tx.balanceAfterCoins != null ? tx.balanceAfterCoins : (tx.balanceAfter != null ? tx.balanceAfter : "—")}
+                              </Td>
+                              <Td fontSize="2xs" color="gray.500" whiteSpace="nowrap">
+                                {tx.createdAt ? new Date(tx.createdAt).toLocaleString("en-IN") : "—"}
+                              </Td>
+                            </Tr>
+                          );
+                        })}
+                      </Tbody>
+                    </Table>
+                  </Box>
+                )}
+              </TabPanel>
+
+              {/* Tab 5: Transactions Ledger */}
               <TabPanel px={0} pt={4}>
                 <Flex gap={3} mb={4} wrap="wrap" align="center" justify="space-between">
                   <HStack spacing={3}>
@@ -494,7 +791,7 @@ export default function RewardsManagement() {
                 </Flex>
 
                 {txLoading ? (
-                  <Center py={10}><Spinner color={BRAND} /></Center>
+                  <Box py={4}><TableSkeleton rows={6} columns={6} /></Box>
                 ) : transactions.length === 0 ? (
                   <Center py={10}><Text color="gray.500">No reward transactions recorded yet.</Text></Center>
                 ) : (
@@ -572,7 +869,7 @@ export default function RewardsManagement() {
                 </Flex>
 
                 {redemptionsLoading ? (
-                  <Center py={10}><Spinner color={BRAND} /></Center>
+                  <Box py={4}><TableSkeleton rows={6} columns={6} /></Box>
                 ) : redemptions.length === 0 ? (
                   <Center py={10}><Text color="gray.500">No coin redemption records found.</Text></Center>
                 ) : (
@@ -624,7 +921,7 @@ export default function RewardsManagement() {
               {/* Tab 5: System Reconciliation & Health */}
               <TabPanel px={0} pt={4}>
                 {reconLoading ? (
-                  <Center py={10}><Spinner color={BRAND} /></Center>
+                  <Box py={4}><TableSkeleton rows={4} columns={4} /></Box>
                 ) : (
                   <Box>
                     <Flex justify="space-between" align="center" mb={4}>
@@ -695,7 +992,7 @@ export default function RewardsManagement() {
         secondaryAction={{ label: "Close", onClick: () => setCustomerModalOpen(false) }}
       >
             {customerLoading ? (
-              <Center py={8}><Spinner color={BRAND} /></Center>
+              <Box py={4}><FormSkeleton fields={4} hasAvatar={true} /></Box>
             ) : !selectedCustomer ? (
               <Text>No customer overview details found.</Text>
             ) : (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Alert,
   AlertIcon,
@@ -94,6 +95,7 @@ import {
 } from "components/Scheduling/schedulingFormatters";
 
 import BookingTrackingModal from "components/Scheduling/BookingTrackingModal";
+import ScheduledJobPoolTab from "components/Scheduling/ScheduledJobPoolTab";
 import DispatchQueueTab from "components/Scheduling/DispatchQueueTab";
 import TechnicianBaseLocationTab from "components/Scheduling/TechnicianBaseLocationTab";
 import NoShowCompensationTab from "components/Scheduling/NoShowCompensationTab";
@@ -302,6 +304,7 @@ export default function SchedulingOps() {
   const isDark = colorMode === "dark";
 
   const [activeMainTab, setActiveMainTab] = useState(0);
+  const [poolUrgentCount, setPoolUrgentCount] = useState(0);
   const [trackerBookingId, setTrackerBookingId] = useState("");
   const [isTrackerOpen, setIsTrackerOpen] = useState(false);
 
@@ -316,7 +319,19 @@ export default function SchedulingOps() {
   const [customers, setCustomers] = useState([]);
   const [bookingsLoading, setBookingsLoading] = useState(true);
   const [bookingsError, setBookingsError] = useState("");
-  const [bookingSearch, setBookingSearch] = useState("");
+  const location = useLocation();
+  const [bookingSearch, setBookingSearch] = useState(() => {
+    const q = new URLSearchParams(location.search).get("search");
+    return q ? decodeURIComponent(q) : "";
+  });
+
+  useEffect(() => {
+    const q = new URLSearchParams(location.search).get("search");
+    if (q !== null && q !== undefined) {
+      setBookingSearch(decodeURIComponent(q));
+      setBookingPage(1);
+    }
+  }, [location.search]);
   const [bookingStatusFilter, setBookingStatusFilter] = useState("ALL");
   const [bookingTypeFilter, setBookingTypeFilter] = useState("ALL");
   const [bookingDistrictFilter, setBookingDistrictFilter] = useState("ALL");
@@ -983,13 +998,21 @@ export default function SchedulingOps() {
   };
 
   return (
-    <Box pt={{ base: "120px", md: "80px" }} px={{ base: "16px", md: "24px" }} pb="40px">
+    <Box pt={0} px={0} pb="40px">
+      <Box
+        position={{ base: "static", md: "sticky" }}
+        top={{ base: "0", md: "64px" }}
+        zIndex="900"
+        bg="gray.50"
+        pt={{ base: 1, md: 2 }}
+        pb={{ base: 2, md: 3 }}
+      >
       <Flex
         direction={{ base: "column", xl: "row" }}
         justify="space-between"
         align={{ base: "flex-start", xl: "center" }}
         gap={4}
-        mb={5}
+        mb={2}
       >
         <Box>
           <HStack spacing={3} align="flex-start">
@@ -1076,46 +1099,10 @@ export default function SchedulingOps() {
               onClick={handleRefreshAll}
               aria-label="Refresh scheduling and dispatch"
             />
-
-            <Menu placement="bottom-end">
-              <MenuButton
-                as={Button}
-                size="sm"
-                variant="outline"
-                borderRadius="10px"
-                fontWeight="700"
-                leftIcon={<FaWrench size={11} />}
-                rightIcon={<FaChevronDown size={9} />}
-              >
-                Tools
-              </MenuButton>
-              <MenuList fontSize="sm" borderRadius="12px" py={1.5} minW="240px">
-                <MenuItem
-                  icon={<FaRedoAlt size={12} />}
-                  isDisabled={failedCount === 0}
-                  onClick={() => openConfirm("retry-all")}
-                >
-                  Retry failed dispatches
-                </MenuItem>
-                <MenuDivider />
-                <MenuItem
-                  icon={<FaPlay size={11} />}
-                  onClick={() => openConfirm("restart-worker")}
-                >
-                  Restart dispatch worker
-                </MenuItem>
-                <MenuDivider />
-                <MenuItem
-                  icon={<FaClock size={11} />}
-                  onClick={() => setActiveMainTab(5)}
-                >
-                  Configure schedule slots
-                </MenuItem>
-              </MenuList>
-            </Menu>
           </HStack>
         </VStack>
       </Flex>
+      </Box>
 
       {telemetryError && (
         <Alert status="warning" borderRadius="12px" mb={4} fontSize="sm">
@@ -1129,109 +1116,6 @@ export default function SchedulingOps() {
           </Button>
         </Alert>
       )}
-
-      <SimpleGrid columns={{ base: 1, sm: 2, xl: 4 }} spacing={4} mb={6}>
-        {summaryCards.map((card) => {
-          const isActive = activeMainTab === card.tab;
-          return (
-            <Box
-              key={card.label}
-              role="button"
-              tabIndex={0}
-              textAlign="left"
-              w="100%"
-              p={4}
-              bg={isDark ? "gray.800" : "white"}
-              borderRadius="16px"
-              border="1px solid"
-              borderColor={
-                isActive ? "teal.400" : isDark ? "gray.700" : "gray.200"
-              }
-              boxShadow={
-                isActive ? "0 0 0 1px rgba(0, 128, 128, 0.35)" : "sm"
-              }
-              cursor="pointer"
-              transition="all 0.2s"
-              _hover={{
-                transform: "translateY(-2px)",
-                boxShadow: "md",
-                borderColor: "teal.400",
-              }}
-              _focus={{ boxShadow: "outline" }}
-              onClick={() => setActiveMainTab(card.tab)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  setActiveMainTab(card.tab);
-                }
-              }}
-            >
-              <HStack justify="space-between" align="flex-start" mb={3}>
-                <HStack spacing={2.5}>
-                  <Box
-                    p={2}
-                    borderRadius="10px"
-                    bg={card.iconBg}
-                    color={card.iconColor}
-                  >
-                    <Icon as={card.icon} boxSize={4} />
-                  </Box>
-                  <Text fontSize="sm" fontWeight="800" color={isDark ? "gray.200" : "gray.700"}>
-                    {card.label}
-                  </Text>
-                </HStack>
-                <Icon
-                  as={FaChevronRight}
-                  boxSize={2.5}
-                  color={isActive ? "teal.500" : "gray.400"}
-                  mt={1}
-                />
-              </HStack>
-
-              <HStack align="center" spacing={2.5}>
-                {overviewLoading ? (
-                  <Skeleton height="32px" width="44px" borderRadius="6px" />
-                ) : (
-                  <Text
-                    fontSize="3xl"
-                    fontWeight="900"
-                    lineHeight="1"
-                    color={
-                      card.tab === 1 && failedCount > 0
-                        ? "red.500"
-                        : card.tab === 2 && missingBaseCount > 0
-                        ? "orange.500"
-                        : card.tab === 3 && noShowClaimsCount > 0
-                        ? "orange.500"
-                        : isDark
-                        ? "white"
-                        : "gray.800"
-                    }
-                  >
-                    {card.value}
-                  </Text>
-                )}
-                <Badge
-                  colorScheme={card.badge.colorScheme}
-                  variant="subtle"
-                  borderRadius="control"
-                  px={2.5}
-                  py={1}
-                  fontSize="2xs"
-                  fontWeight="700"
-                  minH="24px"
-                >
-                  {card.badge.text}
-                </Badge>
-              </HStack>
-
-              <Text fontSize="xs" color="gray.500" mt={2} noOfLines={2}>
-                {card.helper}
-              </Text>
-            </Box>
-          );
-        })}
-      </SimpleGrid>
 
       <Card
         bg={isDark ? "gray.800" : "white"}
@@ -1259,6 +1143,22 @@ export default function SchedulingOps() {
               "::-webkit-scrollbar": { display: "none" },
             }}
           >
+            <Tab fontWeight="700" fontSize="sm" py={3.5} px={{ base: 3, md: 4 }} whiteSpace="nowrap">
+              <HStack spacing={2}>
+                <Icon as={FaBullhorn} boxSize={3.5} />
+                <Text>Scheduled Job Pool</Text>
+                {poolUrgentCount > 0 ? (
+                  <Badge colorScheme="red" variant="solid" borderRadius="full" px={2} fontSize="2xs">
+                    {poolUrgentCount} urgent
+                  </Badge>
+                ) : (
+                  <Badge colorScheme="teal" variant="subtle" borderRadius="full" px={2} fontSize="2xs">
+                    Live
+                  </Badge>
+                )}
+              </HStack>
+            </Tab>
+
             <Tab fontWeight="700" fontSize="sm" py={3.5} px={{ base: 3, md: 4 }} whiteSpace="nowrap">
               <HStack spacing={2}>
                 <Icon as={FaCalendarAlt} boxSize={3.5} />
@@ -1333,6 +1233,19 @@ export default function SchedulingOps() {
           </TabList>
 
           <TabPanels>
+            {/* TAB 0: SCHEDULED JOB POOL */}
+            <TabPanel px={{ base: 2, md: 4 }} py={4}>
+              <ScheduledJobPoolTab
+                onOpenDrawer={(id) => {
+                  setSelectedDrawerBookingId(id);
+                  setIsDrawerOpen(true);
+                }}
+                districts={districts}
+                onUrgentCountChange={setPoolUrgentCount}
+              />
+            </TabPanel>
+
+            {/* TAB 1: BOOKINGS */}
             <TabPanel px={{ base: 3, md: 5 }} py={5}>
               {latestBooking && (
                 <Box
@@ -1630,10 +1543,10 @@ export default function SchedulingOps() {
                         <Table variant="simple" size="md">
                           <Thead bg={isDark ? "gray.700" : "gray.50"}>
                             <Tr>
-                              <Th py={3.5} fontSize="2xs">BOOKING</Th>
+                              <Th py={3.5} fontSize="2xs">BOOKING ID &amp; TYPE</Th>
                               <Th py={3.5} fontSize="2xs">CUSTOMER</Th>
-                              <Th py={3.5} fontSize="2xs">SERVICE &amp; VALUE</Th>
-                              <Th py={3.5} fontSize="2xs">DISPATCH STATUS</Th>
+                              <Th py={3.5} fontSize="2xs">SERVICE &amp; AMOUNT</Th>
+                              <Th py={3.5} fontSize="2xs">DISPATCH &amp; STATUS</Th>
                               <Th py={3.5} fontSize="2xs">TECHNICIAN</Th>
                               <Th py={3.5} fontSize="2xs" textAlign="right">
                                 ACTIONS

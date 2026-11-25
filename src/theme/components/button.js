@@ -7,7 +7,7 @@ export const buttonStyles = {
     Button: {
       variants: {
         primary: {
-          fontSize: "10px",
+          fontSize: "xs",
           bg: "blue.400",
           color: "#fff",
           _hover: { bg: "blue.500" },
@@ -15,7 +15,7 @@ export const buttonStyles = {
           _active: { bg: "blue.600" },
         },
         navy: {
-          fontSize: "10px",
+          fontSize: "xs",
           bg: "navy.900",
           color: "#fff",
           _hover: { bg: "navy.900", filter: "brightness(1.15)" },
@@ -75,7 +75,7 @@ export const buttonStyles = {
         danger: {
           color: "white",
           bg: "red.500",
-          fontSize: "10px",
+          fontSize: "xs",
           _hover: { bg: "red.600" },
           _focus: { bg: "red.600" },
           _active: { bg: "red.700" },
@@ -83,7 +83,7 @@ export const buttonStyles = {
         outlined: (props) => ({
           color: mode("blue.500", "white")(props),
           bg: "transparent",
-          fontSize: "10px",
+          fontSize: "xs",
           border: "1px solid",
           borderColor: mode("blue.500", "white")(props),
           _hover: { bg: mode("blue.50", "whiteAlpha.200")(props) },
@@ -93,7 +93,7 @@ export const buttonStyles = {
         dark: (props) => ({
           color: "white",
           bg: mode("gray.700", "blue.500")(props),
-          fontSize: "10px",
+          fontSize: "xs",
           _hover: { bg: mode("gray.600", "blue.600")(props) },
           _focus: { bg: mode("gray.600", "blue.600")(props) },
           _active: { bg: mode("gray.800", "blue.700")(props) },
@@ -103,7 +103,7 @@ export const buttonStyles = {
           return {
             color: mode(`${c}.600`, `${c}.300`)(props),
             bg: mode(`${c}.50`, "whiteAlpha.200")(props),
-            fontSize: "10px",
+            fontSize: "xs",
             _hover: { bg: mode(`${c}.100`, "whiteAlpha.300")(props) },
             _focus: { bg: mode(`${c}.100`, "whiteAlpha.300")(props) },
             _active: { bg: mode(`${c}.200`, "whiteAlpha.400")(props) },
@@ -116,9 +116,10 @@ export const buttonStyles = {
         },
       },
       baseStyle: {
-        fontWeight: "bold",
-        borderRadius: "6px",
-        fontSize: "10px",
+        fontWeight: "600",
+        borderRadius: "8px",
+        fontSize: "xs",
+        letterSpacing: "0.01em",
         transitionProperty: "common",
         transitionDuration: "normal",
       },

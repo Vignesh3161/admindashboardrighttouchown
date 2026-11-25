@@ -1,1169 +1,590 @@
-/* eslint-disable */
-import { HamburgerIcon } from "@chakra-ui/icons";
-import { useAppToast } from "components/feedback";
-import ConfirmActionModal from "components/common/ConfirmActionModal";
+import React from "react";
+import PropTypes from "prop-types";
 import {
   Box,
-  Button,
-  Drawer,
-  DrawerBody,
-  DrawerCloseButton,
-  DrawerContent,
-  DrawerOverlay,
   Flex,
-  Stack,
+  VStack,
+  HStack,
   Text,
-  useColorMode,
-  useColorModeValue,
-  useDisclosure,
   Image,
+  Icon,
+  Tooltip,
+  IconButton,
   Badge,
-  Link,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
+  DrawerBody,
+  useColorModeValue,
 } from "@chakra-ui/react";
-import IconBox from "components/Icons/IconBox";
+import { NavLink, useLocation } from "react-router-dom";
 import {
-  renderThumbDark,
-  renderThumbLight,
-  renderTrack,
-  renderTrackRTL,
-  renderView,
-  renderViewRTL,
-} from "components/Scrollbar/Scrollbar";
-import { HSeparator } from "components/Separator/Separator";
-import { SidebarHelp } from "components/Sidebar/SidebarHelp";
-import React, { useRef, useState } from "react";
-import { Scrollbars } from "react-custom-scrollbars";
-import { NavLink } from "react-router-dom";
-import FlareMindslogo from "assets/img/fm logo.png";
-
+  MdChevronLeft,
+  MdChevronRight,
+  MdDashboard,
+  MdInventory2,
+  MdHomeRepairService,
+  MdPeople,
+  MdLocationCity,
+  MdCalendarMonth,
+  MdAccountBalanceWallet,
+  MdPayments,
+  MdPercent,
+  MdReportProblem,
+  MdStar,
+  MdCardGiftcard,
+} from "react-icons/md";
+import FlareLogo from "assets/img/Right_Touch.png";
 import { useAdminNotificationCounts } from "hooks/useAdminNotificationCounts";
-import { useAppDispatch, useAppSelector } from "store/hooks";
-import { logoutSession, selectToken } from "store/slices/authSlice";
 
-const Sidebar = React.memo(function Sidebar(props) {
-  const { sidebarVariant, logo, routes } = props;
-  const mainPanel = React.useRef();
-  const variantChange = "0.2s linear";
-  const dispatch = useAppDispatch();
-  // Subscribed auth token (Phase 2) — replaces direct getToken() reads.
-  const authToken = useAppSelector(selectToken);
+const SIDEBAR_GROUPS = [
+  {
+    title: "Operations",
+    items: [
+      { name: "Dashboard", path: "/owner/dashboard", icon: MdDashboard },
+      { name: "Scheduling & Dispatch", path: "/owner/scheduling-ops", icon: MdCalendarMonth },
+      { name: "Complaint Management", path: "/owner/complaints", icon: MdReportProblem, badgeKey: "customerReports" },
+      { name: "Ratings & Reviews", path: "/owner/reports-ratings", icon: MdStar },
+    ],
+  },
+  {
+    title: "Catalog",
+    items: [
+      { name: "Product Management", path: "/owner/product-management", icon: MdInventory2, badgeKey: "productQuoteRequests" },
+      { name: "Service Management", path: "/owner/service-management", icon: MdHomeRepairService },
+    ],
+  },
+  {
+    title: "People",
+    items: [
+      { name: "Technician Management", path: "/owner/admin-management", icon: MdPeople, badgeKey: "technicianApplications" },
+      { name: "User Management", path: "/owner/user-management", icon: MdPeople },
+    ],
+  },
+  {
+    title: "Configuration",
+    items: [
+      { name: "City Zone", path: "/owner/city-zones", icon: MdLocationCity },
+      { name: "Finance Tracking", path: "/owner/finance-tracking", icon: MdAccountBalanceWallet },
+      { name: "Pay to Technician", path: "/owner/technician-payouts", icon: MdPayments },
+      { name: "Commission Management", path: "/owner/commission-management", icon: MdPercent },
+      { name: "Rewards", path: "/owner/rewards", icon: MdCardGiftcard },
+    ],
+  },
+];
 
-  const { counts, markModuleRead } = useAdminNotificationCounts();
+export default function Sidebar({ isCollapsed = false, onToggleCollapse }) {
+  const location = useLocation();
+  const { counts } = useAdminNotificationCounts();
 
-  const getBadgeCount = (path) => {
-    if (path === "/product-management") return counts.productQuoteRequests || 0;
-    if (path === "/admin-management") return counts.technicianApplications || 0;
-    if (path === "/reports-ratings") return counts.customerReports || 0;
-    return 0;
-  };
+  const bg = useColorModeValue("white", "gray.900");
+  const borderColor = useColorModeValue("#E2E8F0", "gray.800");
 
-  const getModuleNameForPath = (path) => {
-    if (path === "/product-management") return "productQuoteRequests";
-    if (path === "/admin-management") return "technicianApplications";
-    if (path === "/reports-ratings") return "customerReports";
-    return null;
-  };
+  const sidebarWidth = isCollapsed ? "72px" : "248px";
 
-  // Sidebar Container Tokens: Clean, elegant white card (no bulky neumorphic shadow)
-  const sidebarContainerBg = useColorModeValue("#FFFFFF", "navy.800");
-  const sidebarContainerBorder = useColorModeValue(
-    "1px solid rgba(0, 0, 0, 0.06)",
-    "1px solid rgba(255, 255, 255, 0.08)"
-  );
-  const sidebarContainerShadow = useColorModeValue(
-    "0px 10px 30px rgba(0, 0, 0, 0.05)",
-    "0px 10px 30px rgba(0, 0, 0, 0.4)"
-  );
-  const sidebarRadius = "10px";
-  const sidebarMargins = "0px";
-
-  // Papermorphic Menu Item Tokens ("Inside menus only")
-  const paperItemBg = useColorModeValue("#FFFFFF", "navy.700");
-  const paperItemBorder = useColorModeValue(
-    "1px solid rgba(226, 232, 240, 0.8)",
-    "1px solid rgba(255, 255, 255, 0.06)"
-  );
-  const paperItemShadow = useColorModeValue(
-    "0 1px 3px rgba(0, 0, 0, 0.04), 0 3px 8px rgba(0, 0, 0, 0.03)",
-    "0 1px 3px rgba(0, 0, 0, 0.3), 0 3px 8px rgba(0, 0, 0, 0.2)"
-  );
-  const paperItemHoverShadow = useColorModeValue(
-    "0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.03)",
-    "0 4px 12px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2)"
-  );
-  const paperItemHoverBorder = useColorModeValue(
-    "1px solid rgba(0, 128, 128, 0.25)",
-    "1px solid rgba(0, 128, 128, 0.4)"
-  );
-
-  const activePaperBg = useColorModeValue(
-    "linear-gradient(135deg, #008f8f 0%, #007373 100%)",
-    "linear-gradient(135deg, #008f8f 0%, #006666 100%)"
-  );
-  const activeColor = "white";
-  const activePaperShadow = useColorModeValue(
-    "0 4px 14px rgba(0, 128, 128, 0.35), 0 1px 3px rgba(0, 128, 128, 0.2)",
-    "0 4px 14px rgba(0, 0, 0, 0.5)"
-  );
-
-  const inactiveColor = useColorModeValue("#4A5568", "#CBD5E1");
-
-  // Paper chip icon boxes
-  const inactiveIconBg = useColorModeValue("#F7FAFC", "navy.800");
-  const inactiveIconBorder = useColorModeValue(
-    "1px solid rgba(226, 232, 240, 0.9)",
-    "1px solid rgba(255, 255, 255, 0.06)"
-  );
-  const inactiveIconShadow = useColorModeValue(
-    "0 1px 2px rgba(0, 0, 0, 0.03)",
-    "none"
-  );
-
-  // Footer paper card
-  const footerBg = useColorModeValue("#F8FAFC", "navy.700");
-  const footerBorder = useColorModeValue(
-    "1px solid rgba(226, 232, 240, 0.8)",
-    "1px solid rgba(255, 255, 255, 0.06)"
-  );
-  const footerShadow = useColorModeValue(
-    "0 1px 3px rgba(0, 0, 0, 0.02)",
-    "none"
-  );
-
-  // Desktop logout / signin dialog state
-  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
-  const [isSigninPromptOpen, setIsSigninPromptOpen] = useState(false);
-  const toast = useAppToast();
-
-  const openLogout = () => setIsLogoutOpen(true);
-  const closeLogout = () => setIsLogoutOpen(false);
-  const openSigninPrompt = () => setIsSigninPromptOpen(true);
-  const closeSigninPrompt = () => setIsSigninPromptOpen(false);
-
-  const handleConfirmLogout = () => {
-    try {
-      closeLogout();
-      // Canonical logout: clears legacy storage (same cleanup as before)
-      // and resets Redux auth state.
-      dispatch(logoutSession());
-      toast({
-        title: "Logged out successfully",
-        description: "Redirecting to the sign-in page...",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-      const base = window.location.origin + window.location.pathname;
-      window.location.replace(`${base}#/auth/signin`);
-    } catch (err) {
-      toast.error(err, { title: "Logout failed", description: "Please try again.", duration: 4000, isClosable: true });
-    }
-  };
-
-  const handleGoToSignIn = () => {
-    closeSigninPrompt();
-    const base = window.location.origin + window.location.pathname;
-    window.location.replace(`${base}#/auth/signin`);
-  };
-
-  const createLinks = (routes) =>
-    routes.map((prop, key) => {
-      if (prop.redirect || prop.hideInSidebar) return null;
-
-      if (prop.category) {
-        return (
-          <React.Fragment key={key}>
-            <Text
-              color={activeColor}
-              fontWeight="bold"
-              mb={{
-                base: "4px",    // 320px - 480px
-                sm: "5px",      // 481px - 767px
-                md: "6px",      // 768px - 1024px
-                lg: "6px",      // 1025px - 1280px
-                xl: "6px"       // 1281px +
-              }}
-              mx="auto"
-              ps={{
-                base: "8px",    // 320px - 480px
-                sm: "9px",      // 481px - 767px
-                md: "10px",     // 768px - 1024px
-                lg: "12px",     // 1025px - 1280px
-                xl: "16px"      // 1281px +
-              }}
-              py={{
-                base: "8px",    // 320px - 480px
-                sm: "10px",     // 481px - 767px
-                md: "12px",     // 768px - 1024px
-                lg: "12px",     // 1025px - 1280px
-                xl: "12px"      // 1281px +
-              }}
-              fontSize={{
-                base: "xs",     // 320px - 480px
-                sm: "sm",       // 481px - 767px
-                md: "sm",       // 768px - 1024px
-                lg: "sm",       // 1025px - 1280px
-                xl: "sm"        // 1281px +
-              }}
-            >
-              {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
-            </Text>
-            {createLinks(prop.views)}
-          </React.Fragment>
-        );
-      }
-
-      if (!prop.icon) return null;
-
-      // If logout route, intercept and show dialogs
-      if (prop.path === "/logout") {
-        return (
-          <Button
-            key={key}
-            boxSize="initial"
-            justifyContent="flex-start"
-            alignItems="center"
-            mb={{ base: "8px", md: "10px" }}
-            mx="auto"
-            ps={{ base: "10px", md: "14px" }}
-            py={{ base: "10px", md: "12px" }}
-            borderRadius="6px"
-            w="100%"
-            bg={paperItemBg}
-            color={useColorModeValue("#E53E3E", "#FC8181")}
-            boxShadow={paperItemShadow}
-            border={paperItemBorder}
-            transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
-            _hover={{
-              bg: useColorModeValue("#FFF5F5", "#2D1D1D"),
-              borderColor: useColorModeValue("#FED7D7", "#742A2A"),
-              boxShadow: paperItemHoverShadow,
-              transform: "translateY(-1.5px)",
-            }}
-            _active={{
-              transform: "translateY(1px)",
-              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-            }}
-            _focus={{ boxShadow: "none" }}
-            onClick={() => {
-              if (!authToken) {
-                // If not logged in, prompt to go to sign-in
-                openSigninPrompt();
-                return;
-              }
-              openLogout();
-            }}
-          >
-            <Flex align="center">
-              <IconBox
-                bg={useColorModeValue("#FFF5F5", "#2D1D1D")}
-                color={"#E53E3E"}
-                h="32px"
-                w="32px"
-                borderRadius="6px"
-                border="1px solid"
-                borderColor={useColorModeValue("#FED7D7", "#742A2A")}
-                boxShadow={inactiveIconShadow}
-                me="12px"
-                transition="all 0.2s ease-in-out"
-                flexShrink={0}
-              >
-                {prop.icon}
-              </IconBox>
-              <Text my="auto" fontSize={{ base: "xs", sm: "sm" }} fontWeight="600">
-                {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
-              </Text>
-            </Flex>
-          </Button>
-        );
-      }
-
-      const count = getBadgeCount(prop.path);
-      const modName = getModuleNameForPath(prop.path);
-
-      return (
-        <NavLink
-          to={prop.layout + prop.path}
-          key={key}
-          onClick={() => {
-            if (modName && count > 0) {
-              markModuleRead(modName, null, true);
-            }
-          }}
+  const renderNavGroup = (group) => (
+    <Box key={group.title} mb={isCollapsed ? 3 : 4}>
+      {/* Group Header in Expanded Mode */}
+      <Box
+        overflow="hidden"
+        maxH={isCollapsed ? "0px" : "24px"}
+        opacity={isCollapsed ? 0 : 1}
+        transform={isCollapsed ? "translateX(-6px)" : "translateX(0)"}
+        transition="max-height 0.22s ease, opacity 0.18s ease, transform 0.22s ease"
+        pointerEvents={isCollapsed ? "none" : "auto"}
+      >
+        <Text
+          fontSize="11px"
+          fontWeight="700"
+          textTransform="uppercase"
+          letterSpacing="0.06em"
+          color="gray.400"
+          px={3.5}
+          mb={1.5}
+          whiteSpace="nowrap"
         >
-          {({ isActive }) => (
-            <Button
-              boxSize="initial"
-              justifyContent="flex-start"
-              alignItems="center"
-              mb={{
-                base: "8px",
-                md: "10px",
-              }}
-              mx="auto"
-              ps={{
-                base: "10px",
-                md: "12px",
-              }}
-              pe={{
-                base: "10px",
-                md: "10px",
-              }}
-              py={{
-                base: "10px",
-                md: "12px",
-              }}
-              borderRadius="6px"
-              w="100%"
-              bg={isActive ? activePaperBg : paperItemBg}
-              color={isActive ? activeColor : inactiveColor}
-              boxShadow={isActive ? activePaperShadow : paperItemShadow}
-              border={isActive ? "1px solid rgba(0, 128, 128, 0.2)" : paperItemBorder}
-              transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
-              _hover={{
-                bg: isActive ? activePaperBg : paperItemBg,
-                boxShadow: isActive ? activePaperShadow : paperItemHoverShadow,
-                borderColor: isActive ? "rgba(0, 128, 128, 0.3)" : paperItemHoverBorder,
-                color: isActive ? activeColor : "#008080",
-                transform: isActive ? "none" : "translateY(-1.5px)",
-              }}
-              _active={{
-                transform: "translateY(1px)",
-                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-              }}
-              _focus={{ boxShadow: "none" }}
+          {group.title}
+        </Text>
+      </Box>
+
+      {/* Subtle Group Divider in Collapsed Mode */}
+      {isCollapsed && (
+        <Box h="1px" bg="gray.100" my={2} mx={2} opacity={0.8} />
+      )}
+
+      <VStack spacing={1.5} align="stretch">
+        {group.items.map((item) => {
+          const isActive =
+            location.pathname === item.path ||
+            (item.path !== "/owner/dashboard" && location.pathname.startsWith(item.path));
+          const badgeCount = item.badgeKey ? counts[item.badgeKey] || 0 : 0;
+
+          const content = (
+            <Flex
+              as={NavLink}
+              to={item.path}
+              align="center"
+              justify={isCollapsed ? "center" : "flex-start"}
+              px={isCollapsed ? 2 : 3}
+              py={2}
+              borderRadius="12px"
+              bg={isActive ? "linear-gradient(135deg, #028A86 0%, #007A78 100%)" : "transparent"}
+              color={isActive ? "white" : "gray.700"}
+              boxShadow={isActive ? "0 4px 14px rgba(0, 128, 128, 0.28)" : "none"}
+              transition="all 0.18s ease"
+              position="relative"
+              _hover={
+                isActive
+                  ? { bg: "linear-gradient(135deg, #008080 0%, #006666 100%)" }
+                  : { bg: "teal.50", color: "#008080" }
+              }
             >
-              <Flex align="center" justify="space-between" w="100%" minW="0" gap={2}>
-                <Flex align="center" minW="0" flex="1">
-                  <IconBox
-                    bg={isActive ? "white" : inactiveIconBg}
-                    color={"#008080"}
-                    h="32px"
-                    w="32px"
-                    borderRadius="6px"
-                    border={isActive ? "none" : inactiveIconBorder}
-                    boxShadow={
-                      isActive
-                        ? "0 2px 5px rgba(0, 0, 0, 0.08)"
-                        : inactiveIconShadow
-                    }
-                    me="12px"
-                    transition="all 0.2s ease-in-out"
-                    flexShrink={0}
-                  >
-                    {prop.icon}
-                  </IconBox>
-                  <Text
-                    my="auto"
-                    fontSize={{
-                      base: "xs",
-                      sm: "sm",
-                    }}
-                    fontWeight={isActive ? "700" : "600"}
-                    letterSpacing="0.2px"
-                    noOfLines={1}
-                    isTruncated
-                  >
-                    {document.documentElement.dir === "rtl"
-                      ? prop.rtlName
-                      : prop.name}
-                  </Text>
-                </Flex>
-                {count > 0 && (
-                  <Badge
-                    display="inline-flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    minW="20px"
-                    h="20px"
-                    px={count > 9 ? "6px" : "4px"}
+              {/* Icon Container with active white container or inactive soft teal background */}
+              <Flex
+                boxSize="28px"
+                borderRadius="8px"
+                bg={isActive ? "whiteAlpha.250" : "teal.50"}
+                color={isActive ? "white" : "#008080"}
+                align="center"
+                justify="center"
+                flexShrink={0}
+                transition="all 0.18s ease"
+                position="relative"
+              >
+                <Icon as={item.icon} boxSize={4} />
+
+                {/* Collapsed Mode Notification Pip */}
+                {isCollapsed && badgeCount > 0 && (
+                  <Box
+                    position="absolute"
+                    top="-2px"
+                    right="-2px"
+                    boxSize="8px"
                     borderRadius="full"
-                    fontSize="11px"
-                    fontWeight="800"
-                    lineHeight="1"
-                    bg={isActive ? "white" : "#008080"}
-                    color={isActive ? "#008080" : "white"}
-                    boxShadow={
-                      isActive
-                        ? "0 2px 4px rgba(0, 0, 0, 0.12)"
-                        : "0 1px 3px rgba(0, 128, 128, 0.35)"
-                    }
-                    flexShrink={0}
-                  >
-                    {count > 99 ? "99+" : count}
-                  </Badge>
+                    bg="#EF4444"
+                    border="1.5px solid"
+                    borderColor={isActive ? "#007A78" : "white"}
+                  />
                 )}
               </Flex>
-            </Button>
-          )}
-        </NavLink>
-      );
-    });
 
-  const links = <>{createLinks(routes)}</>;
-
-  const brand = (
-    <Box pt={{
-      base: "15px",  // 320px - 480px
-      sm: "20px",    // 481px - 767px
-      md: "25px",    // 768px - 1024px
-      lg: "25px",    // 1025px - 1280px
-      xl: "25px"     // 1281px +
-    }} mb={{
-      base: "8px",   // 320px - 480px
-      sm: "10px",    // 481px - 767px
-      md: "12px",    // 768px - 1024px
-      lg: "12px",    // 1025px - 1280px
-      xl: "12px"     // 1281px +
-    }}>
-      {logo}
-      <HSeparator my={{
-        base: "20px", // 320px - 480px
-        sm: "22px",   // 481px - 767px
-        md: "24px",   // 768px - 1024px
-        lg: "26px",   // 1025px - 1280px
-        xl: "26px"    // 1281px +
-      }} />
-    </Box>
-  );
-
-  return (
-    <Box ref={mainPanel}>
-      {/* Desktop Sidebar - Show on lg screens and above */}
-      <Box
-        display={{
-          base: "none",  // 320px - 480px
-          sm: "none",    // 481px - 767px
-          md: "none",    // 768px - 1024px
-          lg: "block",   // 1025px - 1280px
-          xl: "block"    // 1281px +
-        }}
-        position="fixed"
-        top={{
-          base: "40px",  // 320px - 480px
-          sm: "45px",    // 481px - 767px
-          md: "50px",    // 768px - 1024px
-          lg: "50px",    // 1025px - 1280px
-          xl: "50px"     // 1281px +
-        }}
-        left={{
-          base: "12px",  // 320px - 480px
-          sm: "14px",    // 481px - 767px
-          md: "16px",    // 768px - 1024px
-          lg: "16px",    // 1025px - 1280px
-          xl: "16px"     // 1281px +
-        }}
-        zIndex="1200"
-      >
-        <Box
-          bg={sidebarContainerBg}
-          boxShadow={sidebarContainerShadow}
-          border={sidebarContainerBorder}
-          transition={variantChange}
-          w={{
-            base: "260px",
-            sm: "270px",
-            md: "295px",
-            lg: "360px",
-            xl: "380px"
-          }}
-          maxW={{
-            base: "260px",
-            sm: "270px",
-            md: "295px",
-            lg: "360px",
-            xl: "380px"
-          }}
-          h={{
-            base: "calc(100vh - 60px)",  // 320px - 480px
-            sm: "calc(100vh - 65px)",    // 481px - 767px
-            md: "calc(100vh - 66px)",    // 768px - 1024px
-            lg: "calc(100vh - 66px)",    // 1025px - 1280px
-            xl: "calc(100vh - 66px)"     // 1281px +
-          }}
-          ps={{
-            base: "14px",
-            sm: "16px",
-            md: "18px",
-            lg: "18px",
-            xl: "18px"
-          }}
-          pe={{
-            base: "14px",
-            sm: "16px",
-            md: "18px",
-            lg: "18px",
-            xl: "18px"
-          }}
-          m={sidebarMargins}
-          borderRadius={sidebarRadius}
-          display="flex"
-          flexDirection="column"
-        >
-          <Box flex="1" display="flex" flexDirection="column" overflow="hidden">
-            <Box>{brand}</Box>
-            <Stack direction="column" mb={{
-              base: "30px", // 320px - 480px
-              sm: "35px",   // 481px - 767px
-              md: "40px",   // 768px - 1024px
-              lg: "40px",   // 1025px - 1280px
-              xl: "40px"    // 1281px +
-            }} flex="1" overflow="hidden">
-              <Scrollbars
-                autoHide
-                renderTrackVertical={renderTrack}
-                renderThumbVertical={useColorModeValue(renderThumbLight, renderThumbDark)}
-                renderView={
-                  document.documentElement.dir === "rtl"
-                    ? renderViewRTL
-                    : renderView
-                }
-                style={{ width: "100%", height: "100%" }}
-              >
-                <Box pe="10px" pb="30px">
-                  {links}
-                </Box>
-              </Scrollbars>
-            </Stack>
-          </Box>
-          <Box
-            textAlign="center"
-            py="10px"
-            px="14px"
-            my="10px"
-            borderRadius="6px"
-            bg={footerBg}
-            border={footerBorder}
-            boxShadow={footerShadow}
-            flexShrink={0}
-          >
-            <Flex align="center" justify="center">
-              <Link
-                href="https://flaremindstech.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                _hover={{ textDecoration: "none", opacity: 0.85 }}
+              {/* Animated Label Text Container */}
+              <Box
+                flex="1"
+                ml={3}
+                minW="150px"
+                maxW="180px"
+                opacity={isCollapsed ? 0 : 1}
+                transform={isCollapsed ? "translateX(-10px)" : "translateX(0)"}
+                overflow="hidden"
+                whiteSpace="nowrap"
+                pointerEvents={isCollapsed ? "none" : "auto"}
+                transition="opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)"
+                willChange="opacity, transform"
               >
                 <Text
-                  fontSize={{ base: "11px", sm: "12px" }}
-                  color={inactiveColor}
-                  fontWeight="500"
-                  display="flex"
-                  alignItems="center"
-                  gap="6px"
-                  whiteSpace="nowrap"
+                  noOfLines={1}
+                  fontSize="13px"
+                  fontWeight={isActive ? "700" : "600"}
                 >
-                  Made by
-                  <Image
-                    src={FlareMindslogo}
-                    alt="FlareMinds Logo"
-                    boxSize="18px"
-                    objectFit="contain"
-                  />
-                  <Text as="span" fontWeight="700" color="#008080">
-                    FlareMinds Tech PVT LTD
-                  </Text>
+                  {item.name}
                 </Text>
-              </Link>
-            </Flex>
-          </Box>
+              </Box>
 
-
-        </Box>
-      </Box>
-      <ConfirmActionModal
-        isOpen={isSigninPromptOpen}
-        onClose={closeSigninPrompt}
-        onConfirm={handleGoToSignIn}
-        title="Not signed in"
-        description="You are not signed in yet. Do you want to go to the Sign-in page?"
-        confirmText="Go to Sign In"
-        confirmColorScheme="teal"
-        icon={undefined}
-      />
-
-      <ConfirmActionModal
-        isOpen={isLogoutOpen}
-        onClose={closeLogout}
-        onConfirm={handleConfirmLogout}
-        title="Confirm logout"
-        description="Are you sure you want to log out of the admin dashboard?"
-        confirmText="Sign Out"
-        confirmColorScheme="red"
-      />
-    </Box>
-  );
-});
-
-// ✅ Responsive Sidebar - FIXED VERSION
-export const SidebarResponsive = React.memo(function SidebarResponsive(props) {
-  const { logo, routes, hamburgerColor, isOpen, onOpen, onClose } = props;
-  const mainPanel = React.useRef();
-  const dispatchResp = useAppDispatch();
-  // Subscribed auth token (Phase 2) — replaces direct getToken() reads.
-  const authTokenResp = useAppSelector(selectToken);
-
-  const { counts, markModuleRead } = useAdminNotificationCounts();
-
-  const getBadgeCount = (path) => {
-    if (path === "/product-management") return counts.productQuoteRequests || 0;
-    if (path === "/admin-management") return counts.technicianApplications || 0;
-    if (path === "/reports-ratings") return counts.customerReports || 0;
-    return 0;
-  };
-
-  const getModuleNameForPath = (path) => {
-    if (path === "/product-management") return "productQuoteRequests";
-    if (path === "/admin-management") return "technicianApplications";
-    if (path === "/reports-ratings") return "customerReports";
-    return null;
-  };
-
-  // Logout / signin state for responsive drawer
-  const [isLogoutOpenResp, setIsLogoutOpenResp] = useState(false);
-  const [isSigninPromptOpenResp, setIsSigninPromptOpenResp] = useState(false);
-  const toastResp = useAppToast();
-
-  const openLogoutResp = () => setIsLogoutOpenResp(true);
-  const closeLogoutResp = () => setIsLogoutOpenResp(false);
-  const openSigninPromptResp = () => setIsSigninPromptOpenResp(true);
-  const closeSigninPromptResp = () => setIsSigninPromptOpenResp(false);
-
-  const handleConfirmLogoutResp = () => {
-    try {
-      closeLogoutResp();
-      if (onClose) onClose();
-      // Canonical logout: clears legacy storage (same cleanup as before)
-      // and resets Redux auth state.
-      dispatchResp(logoutSession());
-      toastResp({
-        title: "Logged out successfully",
-        description: "Redirecting to the sign-in page...",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-      const base = window.location.origin + window.location.pathname;
-      window.location.replace(`${base}#/auth/signin`);
-    } catch (err) {
-      toastResp({
-        title: "Logout failed",
-        description: err?.message || "Please try again.",
-        status: "error",
-        duration: 4000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleGoToSignInResp = () => {
-    closeSigninPromptResp();
-    if (onClose) onClose();
-    const base = window.location.origin + window.location.pathname;
-    window.location.replace(`${base}#/auth/signin`);
-  };
-
-  // Sidebar Container Tokens: Clean, elegant white card (no bulky neumorphic shadow)
-  const sidebarContainerBg = useColorModeValue("#FFFFFF", "navy.800");
-  const sidebarContainerBorder = useColorModeValue(
-    "1px solid rgba(0, 0, 0, 0.06)",
-    "1px solid rgba(255, 255, 255, 0.08)"
-  );
-  const sidebarContainerShadow = useColorModeValue(
-    "0px 10px 30px rgba(0, 0, 0, 0.05)",
-    "0px 10px 30px rgba(0, 0, 0, 0.4)"
-  );
-
-  // Papermorphic Menu Item Tokens ("Inside menus only")
-  const paperItemBg = useColorModeValue("#FFFFFF", "navy.700");
-  const paperItemBorder = useColorModeValue(
-    "1px solid rgba(226, 232, 240, 0.8)",
-    "1px solid rgba(255, 255, 255, 0.06)"
-  );
-  const paperItemShadow = useColorModeValue(
-    "0 1px 3px rgba(0, 0, 0, 0.04), 0 3px 8px rgba(0, 0, 0, 0.03)",
-    "0 1px 3px rgba(0, 0, 0, 0.3), 0 3px 8px rgba(0, 0, 0, 0.2)"
-  );
-  const paperItemHoverShadow = useColorModeValue(
-    "0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.03)",
-    "0 4px 12px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.2)"
-  );
-  const paperItemHoverBorder = useColorModeValue(
-    "1px solid rgba(0, 128, 128, 0.25)",
-    "1px solid rgba(0, 128, 128, 0.4)"
-  );
-
-  const activePaperBg = useColorModeValue(
-    "linear-gradient(135deg, #008f8f 0%, #007373 100%)",
-    "linear-gradient(135deg, #008f8f 0%, #006666 100%)"
-  );
-  const activeColor = "white";
-  const activePaperShadow = useColorModeValue(
-    "0 4px 14px rgba(0, 128, 128, 0.35), 0 1px 3px rgba(0, 128, 128, 0.2)",
-    "0 4px 14px rgba(0, 0, 0, 0.5)"
-  );
-
-  const inactiveColor = useColorModeValue("#4A5568", "#CBD5E1");
-
-  // Paper chip icon boxes
-  const inactiveIconBg = useColorModeValue("#F7FAFC", "navy.800");
-  const inactiveIconBorder = useColorModeValue(
-    "1px solid rgba(226, 232, 240, 0.9)",
-    "1px solid rgba(255, 255, 255, 0.06)"
-  );
-  const inactiveIconShadow = useColorModeValue(
-    "0 1px 2px rgba(0, 0, 0, 0.03)",
-    "none"
-  );
-
-  // Footer paper card
-  const footerBg = useColorModeValue("#F8FAFC", "navy.700");
-  const footerBorder = useColorModeValue(
-    "1px solid rgba(226, 232, 240, 0.8)",
-    "1px solid rgba(255, 255, 255, 0.06)"
-  );
-  const footerShadow = useColorModeValue(
-    "0 1px 3px rgba(0, 0, 0, 0.02)",
-    "none"
-  );
-
-  const createLinks = (routes) =>
-    routes.map((prop, key) => {
-      if (prop.redirect || prop.hideInSidebar) return null;
-      if (prop.category) {
-        return (
-          <React.Fragment key={key}>
-            <Text
-              color={activeColor}
-              fontWeight="bold"
-              mb={{
-                base: "4px",
-                sm: "5px",
-                md: "6px",
-              }}
-              mx="auto"
-              ps={{
-                base: "8px",
-                sm: "9px",
-                md: "10px",
-              }}
-              py={{
-                base: "8px",
-                sm: "10px",
-                md: "12px",
-              }}
-              fontSize={{
-                base: "xs",
-                sm: "sm",
-                md: "sm",
-              }}
-            >
-              {document.documentElement.dir === "rtl"
-                ? prop.rtlName
-                : prop.name}
-            </Text>
-            {createLinks(prop.views)}
-          </React.Fragment>
-        );
-      }
-
-      if (!prop.icon) return null;
-
-      // Intercept logout route in responsive sidebar
-      if (prop.path === "/logout") {
-        return (
-          <Button
-            key={key}
-            boxSize="initial"
-            justifyContent="flex-start"
-            alignItems="center"
-            mb={{ base: "8px", md: "10px" }}
-            mx="auto"
-            ps={{ base: "10px", md: "14px" }}
-            py={{ base: "10px", md: "12px" }}
-            borderRadius="6px"
-            w="100%"
-            bg={paperItemBg}
-            color={useColorModeValue("#E53E3E", "#FC8181")}
-            boxShadow={paperItemShadow}
-            border={paperItemBorder}
-            transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
-            _hover={{
-              bg: useColorModeValue("#FFF5F5", "#2D1D1D"),
-              borderColor: useColorModeValue("#FED7D7", "#742A2A"),
-              boxShadow: paperItemHoverShadow,
-              transform: "translateY(-1.5px)",
-            }}
-            _active={{
-              transform: "translateY(1px)",
-              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-            }}
-            _focus={{ boxShadow: "none" }}
-            onClick={() => {
-              if (!authTokenResp) {
-                openSigninPromptResp();
-                return;
-              }
-              openLogoutResp();
-            }}
-          >
-            <Flex align="center">
-              <IconBox
-                bg={useColorModeValue("#FFF5F5", "#2D1D1D")}
-                color={"#E53E3E"}
-                h="32px"
-                w="32px"
-                borderRadius="6px"
-                border="1px solid"
-                borderColor={useColorModeValue("#FED7D7", "#742A2A")}
-                boxShadow={inactiveIconShadow}
-                me="12px"
-                transition="all 0.2s ease-in-out"
-                flexShrink={0}
+              {/* Expanded Mode Badge */}
+              <Box
+                maxW="60px"
+                opacity={isCollapsed ? 0 : 1}
+                transform={isCollapsed ? "translateX(-6px)" : "translateX(0)"}
+                overflow="hidden"
+                transition="opacity 0.2s ease, transform 0.24s ease"
+                pointerEvents={isCollapsed ? "none" : "auto"}
+                willChange="opacity, transform"
               >
-                {prop.icon}
-              </IconBox>
-              <Text my="auto" fontSize={{ base: "xs", sm: "sm" }} fontWeight="600">
-                {document.documentElement.dir === "rtl" ? prop.rtlName : prop.name}
-              </Text>
-            </Flex>
-          </Button>
-        );
-      }
-
-      const count = getBadgeCount(prop.path);
-      const modName = getModuleNameForPath(prop.path);
-
-      return (
-        <NavLink
-          to={prop.layout + prop.path}
-          key={key}
-          onClick={() => {
-            if (modName && count > 0) {
-              markModuleRead(modName, null, true);
-            }
-            if (onClose) onClose();
-          }}
-        >
-          {({ isActive }) => (
-            <Button
-              boxSize="initial"
-              justifyContent="flex-start"
-              alignItems="center"
-              mb={{
-                base: "8px",
-                md: "10px",
-              }}
-              mx="auto"
-              ps={{
-                base: "10px",
-                md: "14px",
-              }}
-              py={{
-                base: "10px",
-                md: "12px",
-              }}
-              borderRadius="6px"
-              w="100%"
-              bg={isActive ? activePaperBg : paperItemBg}
-              color={isActive ? activeColor : inactiveColor}
-              boxShadow={isActive ? activePaperShadow : paperItemShadow}
-              border={isActive ? "1px solid rgba(0, 128, 128, 0.2)" : paperItemBorder}
-              transition="all 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
-              _hover={{
-                bg: isActive ? activePaperBg : paperItemBg,
-                boxShadow: isActive ? activePaperShadow : paperItemHoverShadow,
-                borderColor: isActive ? "rgba(0, 128, 128, 0.3)" : paperItemHoverBorder,
-                color: isActive ? activeColor : "#008080",
-                transform: isActive ? "none" : "translateY(-1.5px)",
-              }}
-              _active={{
-                transform: "translateY(1px)",
-                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-              }}
-              _focus={{ boxShadow: "none" }}
-            >
-              <Flex align="center" justify="space-between" w="100%" minW="0" gap={2}>
-                <Flex align="center" minW="0" flex="1">
-                  <IconBox
-                    bg={isActive ? "white" : inactiveIconBg}
-                    color={"#008080"}
-                    h="32px"
-                    w="32px"
-                    borderRadius="6px"
-                    border={isActive ? "none" : inactiveIconBorder}
-                    boxShadow={
-                      isActive
-                        ? "0 2px 5px rgba(0, 0, 0, 0.08)"
-                        : inactiveIconShadow
-                    }
-                    me="12px"
-                    transition="all 0.2s ease-in-out"
-                    flexShrink={0}
-                  >
-                    {prop.icon}
-                  </IconBox>
-                  <Text
-                    my="auto"
-                    fontSize={{
-                      base: "xs",
-                      sm: "sm",
-                    }}
-                    fontWeight={isActive ? "700" : "600"}
-                    letterSpacing="0.2px"
-                    noOfLines={1}
-                    isTruncated
-                  >
-                    {document.documentElement.dir === "rtl"
-                      ? prop.rtlName
-                      : prop.name}
-                  </Text>
-                </Flex>
-                {count > 0 && (
+                {badgeCount > 0 && (
                   <Badge
-                    display="inline-flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    minW="20px"
-                    h="20px"
-                    px={count > 9 ? "6px" : "4px"}
+                    bg={isActive ? "whiteAlpha.300" : "teal.500"}
+                    color="white"
                     borderRadius="full"
-                    fontSize="11px"
-                    fontWeight="800"
-                    lineHeight="1"
-                    bg={isActive ? "white" : "#008080"}
-                    color={isActive ? "#008080" : "white"}
-                    boxShadow={
-                      isActive
-                        ? "0 2px 4px rgba(0, 0, 0, 0.12)"
-                        : "0 1px 3px rgba(0, 128, 128, 0.35)"
-                    }
-                    flexShrink={0}
+                    px={1.5}
+                    fontSize="2xs"
+                    fontWeight="700"
                   >
-                    {count > 99 ? "99+" : count}
+                    {badgeCount}
                   </Badge>
                 )}
-              </Flex>
-            </Button>
-          )}
-        </NavLink>
-      );
-    });
+              </Box>
+            </Flex>
+          );
 
-  const links = <>{createLinks(routes)}</>;
+          if (isCollapsed) {
+            const tooltipLabel = badgeCount > 0 ? `${item.name} (${badgeCount} new)` : item.name;
+            return (
+              <Tooltip
+                key={item.path}
+                label={tooltipLabel}
+                placement="right"
+                hasArrow
+                openDelay={100}
+                borderRadius="8px"
+                px={2.5}
+                py={1}
+                fontSize="xs"
+                fontWeight="600"
+                bg="gray.800"
+                color="white"
+                boxShadow="md"
+              >
+                {content}
+              </Tooltip>
+            );
+          }
 
-  const brand = (
-    <Box pt={{
-      base: "25px",  // 320px - 480px
-      sm: "30px",    // 481px - 767px
-      md: "35px"     // 768px - 1024px
-    }} mb={{
-      base: "6px",   // 320px - 480px
-      sm: "7px",     // 481px - 767px
-      md: "8px"      // 768px - 1024px
-    }}>
-      {logo}
-      <HSeparator my={{
-        base: "20px", // 320px - 480px
-        sm: "22px",   // 481px - 767px
-        md: "26px"    // 768px - 1024px
-      }} />
+          return <Box key={item.path}>{content}</Box>;
+        })}
+      </VStack>
     </Box>
   );
 
   return (
-    <Flex
-      display={{
-        base: "flex",  // 320px - 480px
-        sm: "flex",    // 481px - 767px
-        md: "flex",    // 768px - 1024px
-        lg: "none",    // 1025px - 1280px
-        xl: "none"     // 1281px +
-      }}
-      ref={mainPanel}
-      alignItems="center"
+    <Box
+      as="aside"
+      position="fixed"
+      left="0"
+      top="0"
+      bottom="0"
+      w={sidebarWidth}
+      bg={bg}
+      borderRight="1px solid"
+      borderColor={borderColor}
+      zIndex="110"
+      transition="width 0.35s cubic-bezier(0.16, 1, 0.3, 1)"
+      willChange="width"
+      display={{ base: "none", lg: "flex" }}
+      flexDirection="column"
+      boxShadow="0 2px 14px rgba(0, 0, 0, 0.04)"
     >
-      {/* Hamburger Icon - Only visible on mobile */}
-      {/* <HamburgerIcon 
-        color={hamburgerColor} 
-        w={{
-          base: "16px",  // 320px - 480px
-          sm: "17px",    // 481px - 767px
-          md: "18px"     // 768px - 1024px
-        }}
-        h={{
-          base: "16px",  // 320px - 480px
-          sm: "17px",    // 481px - 767px
-          md: "18px"     // 768px - 1024px
-        }}
-        onClick={onOpen}
-        cursor="pointer"
-      /> */}
+      {/* Top Header Logo & Inset Toggle */}
+      <Flex
+        h="64px"
+        align="center"
+        justify="center"
+        position="relative"
+        px={isCollapsed ? 2 : 4}
+        borderBottom="1px solid"
+        borderColor={borderColor}
+        flexShrink={0}
+      >
+        {/* Expanded Mode: Full Brand Logo with Smooth Transition */}
+        <Flex
+          align="center"
+          justify="flex-start"
+          pl={2}
+          pr={isCollapsed ? 0 : 10}
+          flex="1"
+          overflow="hidden"
+          opacity={isCollapsed ? 0 : 1}
+          maxW={isCollapsed ? "0px" : "155px"}
+          pointerEvents={isCollapsed ? "none" : "auto"}
+          transition="max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease"
+        >
+          <Image
+            src={FlareLogo}
+            alt="Right Touch Logo"
+            h="40px"
+            maxW="145px"
+            w="auto"
+            objectFit="contain"
+          />
+        </Flex>
 
-      {/* Mobile Sidebar Drawer */}
-      <Drawer
-        isOpen={isOpen}
-        onClose={onClose}
-        placement={document.documentElement.dir === "rtl" ? "right" : "left"}
-        size={{
-          base: "xs",  // 320px - 480px
-          sm: "sm",    // 481px - 767px
-          md: "md"     // 768px - 1024px
+        {/* Collapsed Mode: Modern RT Monogram Badge with Smooth Transition */}
+        <Flex
+          align="center"
+          justify="center"
+          overflow="hidden"
+          opacity={isCollapsed ? 1 : 0}
+          maxW={isCollapsed ? "42px" : "0px"}
+          pointerEvents={isCollapsed ? "auto" : "none"}
+          transition="max-width 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease"
+        >
+          <Tooltip label="RightTouch Console" placement="right" hasArrow>
+            <Flex
+              boxSize="38px"
+              borderRadius="10px"
+              bg="linear-gradient(135deg, #028A86 0%, #006060 100%)"
+              color="white"
+              align="center"
+              justify="center"
+              boxShadow="0 2px 8px rgba(0, 128, 128, 0.3)"
+              cursor="default"
+            >
+              <Text fontWeight="900" fontSize="sm" letterSpacing="-0.03em">
+                RT
+              </Text>
+            </Flex>
+          </Tooltip>
+        </Flex>
+
+        {/* Expanded Mode Inset Collapse Button */}
+        {onToggleCollapse && (
+          <Tooltip label="Collapse sidebar (Ctrl+B)" placement="bottom" hasArrow>
+            <IconButton
+              aria-label="Collapse sidebar"
+              icon={<Icon as={MdChevronLeft} boxSize="18px" />}
+              position="absolute"
+              right="12px"
+              top="50%"
+              transform="translateY(-50%)"
+              opacity={isCollapsed ? 0 : 1}
+              pointerEvents={isCollapsed ? "none" : "auto"}
+              boxSize="28px"
+              minW="28px"
+              h="28px"
+              borderRadius="full"
+              bg="gray.50"
+              color="gray.600"
+              border="1px solid"
+              borderColor={borderColor}
+              boxShadow="0 1px 3px rgba(0, 0, 0, 0.08)"
+              cursor="pointer"
+              onClick={onToggleCollapse}
+              _hover={{
+                bg: "#0F766E",
+                color: "white",
+                borderColor: "#0F766E",
+                boxShadow: "0 2px 8px rgba(15, 118, 110, 0.3)",
+              }}
+              _active={{
+                transform: "translateY(-50%) scale(0.95)",
+              }}
+              transition="all 0.2s cubic-bezier(0.2, 0, 0, 1)"
+            />
+          </Tooltip>
+        )}
+      </Flex>
+
+      {/* Collapsed Mode Expand Button Trigger */}
+      {onToggleCollapse && (
+        <Flex
+          justify="center"
+          align="center"
+          maxH={isCollapsed ? "46px" : "0px"}
+          opacity={isCollapsed ? 1 : 0}
+          overflow="hidden"
+          pointerEvents={isCollapsed ? "auto" : "none"}
+          py={isCollapsed ? 2 : 0}
+          borderBottom={isCollapsed ? "1px solid" : "none"}
+          borderColor={borderColor}
+          flexShrink={0}
+          transition="max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, padding 0.35s ease"
+        >
+          <Tooltip label="Expand sidebar (Ctrl+B)" placement="right" hasArrow>
+            <IconButton
+              aria-label="Expand sidebar"
+              icon={
+                <Icon
+                  as={MdChevronLeft}
+                  boxSize="18px"
+                  transform="rotate(180deg)"
+                />
+              }
+              boxSize="30px"
+              minW="30px"
+              h="30px"
+              borderRadius="full"
+              bg="gray.50"
+              color="gray.600"
+              border="1px solid"
+              borderColor={borderColor}
+              boxShadow="0 1px 3px rgba(0, 0, 0, 0.08)"
+              cursor="pointer"
+              onClick={onToggleCollapse}
+              _hover={{
+                bg: "#0F766E",
+                color: "white",
+                borderColor: "#0F766E",
+                boxShadow: "0 2px 8px rgba(15, 118, 110, 0.3)",
+              }}
+              _active={{
+                transform: "scale(0.95)",
+              }}
+              transition="all 0.2s cubic-bezier(0.2, 0, 0, 1)"
+            />
+          </Tooltip>
+        </Flex>
+      )}
+
+      {/* Navigation Groups Container with Bespoke Capsule Scrollbar */}
+      <Box
+        flex="1"
+        overflowY="auto"
+        overflowX="hidden"
+        px={isCollapsed ? 2 : 3}
+        py={3.5}
+        css={{
+          scrollbarWidth: "thin",
+          scrollbarColor: "#FE2934 #F1F5F9",
+          scrollbarGutter: "stable",
+          "&::-webkit-scrollbar": {
+            width: "8px",
+          },
+          "&::-webkit-scrollbar-track": {
+            background: "#F1F5F9",
+            borderRadius: "9999px",
+            margin: "6px 0",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            background: "linear-gradient(180deg, #FE2934 0%, #FF5252 60%, rgba(254, 41, 52, 0.25) 100%)",
+            borderRadius: "9999px",
+            border: "2px solid transparent",
+            backgroundClip: "content-box",
+            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+          },
+          "&::-webkit-scrollbar-thumb:hover": {
+            background: "linear-gradient(180deg, #E02424 0%, #FE2934 70%, rgba(224, 36, 36, 0.45) 100%)",
+            border: "2px solid transparent",
+            backgroundClip: "content-box",
+            boxShadow: "0 0 10px rgba(254, 41, 52, 0.5)",
+          },
         }}
       >
-        <DrawerOverlay />
-        <DrawerContent
-          w={{
-            base: "295px",
-            sm: "320px",
-            md: "340px"
-          }}
-          maxW={{
-            base: "295px",
-            sm: "320px",
-            md: "340px"
-          }}
-          bg={sidebarContainerBg}
-          boxShadow={sidebarContainerShadow}
-          border={sidebarContainerBorder}
-          borderRadius="10px"
-          mt={{
-            base: "50px",  // 320px - 480px
-            sm: "55px",    // 481px - 767px
-            md: "60px"     // 768px - 1024px
-          }}
-          mb={{
-            base: "15px",  // 320px - 480px
-            sm: "18px",    // 481px - 767px
-            md: "20px"     // 768px - 1024px
-          }}
-          ml={{
-            base: "8px",   // 320px - 480px
-            sm: "9px",     // 481px - 767px
-            md: "10px"     // 768px - 1024px
-          }}
-          h={{
-            base: "calc(100vh - 65px)",  // 320px - 480px
-            sm: "calc(100vh - 73px)",    // 481px - 767px
-            md: "calc(100vh - 80px)"     // 768px - 1024px
-          }}
-        >
-          <DrawerCloseButton
-            _focus={{ boxShadow: "none" }}
-            _hover={{ boxShadow: "none" }}
-            mt={{
-              base: "8px",   // 320px - 480px
-              sm: "9px",     // 481px - 767px
-              md: "10px"     // 768px - 1024px
-            }}
-            mr={{
-              base: "8px",   // 320px - 480px
-              sm: "9px",     // 481px - 767px
-              md: "10px"     // 768px - 1024px
-            }}
-            size={{
-              base: "md",    // 320px - 480px
-              sm: "lg",      // 481px - 767px
-              md: "lg"       // 768px - 1024px
-            }}
-          />
-          <DrawerBody
-            px={{
-              base: "0.8rem",  // 320px - 480px
-              sm: "0.9rem",    // 481px - 767px
-              md: "1rem"       // 768px - 1024px
-            }}
-            display="flex"
-            flexDirection="column"
-            overflow="hidden"
-          >
-            <Box
-              w="100%"
-              h="100%"
-              display="flex"
-              flexDirection="column"
-              justifyContent="space-between"
-            >
-              <Box flex="1" display="flex" flexDirection="column" overflow="hidden">
-                <Box>{brand}</Box>
-                <Stack direction="column" mb={{
-                  base: "30px", // 320px - 480px
-                  sm: "35px",   // 481px - 767px
-                  md: "40px"    // 768px - 1024px
-                }} flex="1" overflow="hidden">
-                  <Box overflow="auto" flex="1">
-                    {links}
-                  </Box>
-                </Stack>
-                <SidebarHelp />
-              </Box>
+        {SIDEBAR_GROUPS.map(renderNavGroup)}
+      </Box>
 
-              <Box
-                textAlign="center"
-                py={{ base: "10px", md: "12px" }}
-                my="10px"
-                bg={footerBg}
-                border={footerBorder}
-                boxShadow={footerShadow}
-                borderRadius="6px"
-                fontSize={{ base: "11px", sm: "12px", md: "13px" }}
-                color="#888"
-                flexShrink={0}
-              >
-                <Flex
-                  align="center"
-                  justify="center"
-                >
-                  <Link
-                    href="https://flaremindstech.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    _hover={{ textDecoration: "none", opacity: 0.85 }}
-                  >
-                    <Text
-                      fontSize={{ base: "12px", sm: "13px", md: "14px" }}
-                      display="flex"
-                      alignItems="center"
-                      gap="6px"
-                    >
-                      Made by
-                      <Image
-                        src={FlareMindslogo}
-                        alt="FlareMinds Logo"
-                        boxSize={{ base: "20px", sm: "20px", md: "22px" }}
-                        objectFit="contain"
-                      />
-                      <strong style={{ color: "#008080" }}>FlareMinds Tech PVT LTD</strong>
-                    </Text>
-                  </Link>
-                </Flex>
-              </Box>
-
-            </Box>
-          </DrawerBody>
-          <ConfirmActionModal
-            isOpen={isSigninPromptOpenResp}
-            onClose={closeSigninPromptResp}
-            onConfirm={handleGoToSignInResp}
-            title="Not signed in"
-            description="You are not signed in yet. Do you want to go to the Sign-in page?"
-            confirmText="Go to Sign In"
-            confirmColorScheme="teal"
-          />
-
-          <ConfirmActionModal
-            isOpen={isLogoutOpenResp}
-            onClose={closeLogoutResp}
-            onConfirm={handleConfirmLogoutResp}
-            title="Confirm logout"
-            description="Are you sure you want to log out of the admin dashboard?"
-            confirmText="Sign Out"
-            confirmColorScheme="red"
-          />
-        </DrawerContent>
-      </Drawer>
-    </Flex>
+      {/* Footer Muted Credit Line */}
+      <Box
+        p={3}
+        borderTop="1px solid"
+        borderColor={borderColor}
+        textAlign="center"
+        flexShrink={0}
+      >
+        {!isCollapsed ? (
+          <Text fontSize="12px" color="gray.400" fontWeight="400" noOfLines={1}>
+            Made by FlareMinds Tech PVT LTD
+          </Text>
+        ) : (
+          <Tooltip label="FlareMinds Tech PVT LTD" placement="right" hasArrow>
+            <Text fontSize="10px" color="gray.400" fontWeight="700" cursor="default">
+              FM
+            </Text>
+          </Tooltip>
+        )}
+      </Box>
+    </Box>
   );
-});
+}
 
-export default Sidebar;
+Sidebar.propTypes = {
+  isCollapsed: PropTypes.bool,
+  onToggleCollapse: PropTypes.func,
+};
+
+/**
+ * Mobile Sidebar Drawer Component
+ */
+export function SidebarResponsive({ isOpen, onClose }) {
+  const location = useLocation();
+  const { counts } = useAdminNotificationCounts();
+  const bg = useColorModeValue("white", "gray.900");
+  const borderColor = useColorModeValue("#E2E8F0", "gray.800");
+
+  return (
+    <Drawer isOpen={isOpen} placement="left" onClose={onClose} size="xs">
+      <DrawerOverlay bg="blackAlpha.400" backdropFilter="blur(2px)" />
+      <DrawerContent bg={bg}>
+        <DrawerCloseButton />
+        <Box
+          h="64px"
+          px={4}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          borderBottom="1px solid"
+          borderColor={borderColor}
+        >
+          <Image
+            src={FlareLogo}
+            alt="Right Touch Logo"
+            h="44px"
+            maxW="170px"
+            w="auto"
+            objectFit="contain"
+          />
+        </Box>
+        <DrawerBody p={3}>
+          {SIDEBAR_GROUPS.map((group) => (
+            <Box key={group.title} mb={4}>
+              <Text fontSize="11px" fontWeight="700" textTransform="uppercase" letterSpacing="0.06em" color="gray.400" px={3} mb={1.5}>
+                {group.title}
+              </Text>
+              <VStack spacing={1.5} align="stretch">
+                {group.items.map((item) => {
+                  const isActive =
+                    location.pathname === item.path ||
+                    (item.path !== "/owner/dashboard" && location.pathname.startsWith(item.path));
+                  const badgeCount = item.badgeKey ? counts[item.badgeKey] || 0 : 0;
+
+                  return (
+                    <Flex
+                      key={item.path}
+                      as={NavLink}
+                      to={item.path}
+                      onClick={onClose}
+                      align="center"
+                      px={3}
+                      py={2}
+                      borderRadius="12px"
+                      bg={isActive ? "linear-gradient(135deg, #028A86 0%, #007A78 100%)" : "transparent"}
+                      color={isActive ? "white" : "gray.700"}
+                      fontWeight={isActive ? "700" : "600"}
+                      fontSize="13px"
+                      boxShadow={isActive ? "0 4px 14px rgba(0, 128, 128, 0.28)" : "none"}
+                    >
+                      <Flex
+                        boxSize="28px"
+                        borderRadius="8px"
+                        bg={isActive ? "whiteAlpha.250" : "teal.50"}
+                        color={isActive ? "white" : "#008080"}
+                        align="center"
+                        justify="center"
+                        mr={3}
+                        flexShrink={0}
+                      >
+                        <Icon as={item.icon} boxSize={4} />
+                      </Flex>
+                      <Text flex="1">{item.name}</Text>
+                      {badgeCount > 0 && (
+                        <Badge
+                          bg={isActive ? "whiteAlpha.300" : "teal.500"}
+                          color="white"
+                          borderRadius="full"
+                          px={1.5}
+                          fontSize="2xs"
+                        >
+                          {badgeCount}
+                        </Badge>
+                      )}
+                    </Flex>
+                  );
+                })}
+              </VStack>
+            </Box>
+          ))}
+          <Box mt={6} pt={3} borderTop="1px solid" borderColor={borderColor} textAlign="center">
+            <Text fontSize="12px" color="gray.400">
+              Made by FlareMinds Tech PVT LTD
+            </Text>
+          </Box>
+        </DrawerBody>
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
+SidebarResponsive.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+};

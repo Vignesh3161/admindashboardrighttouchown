@@ -39,6 +39,7 @@ import {
 import { MdRefresh } from "react-icons/md";
 import { useAppToast } from "components/feedback";
 import StatusBadge from "components/common/StatusBadge";
+import { TableSkeleton } from "components/common";
 import NoShowCompensationModal from "./NoShowCompensationModal";
 import { getAllSchedulingBookings } from "api/scheduling";
 import {
@@ -277,14 +278,9 @@ export default function NoShowCompensationTab({ onRefreshPendingCount, customerL
 
       {/* Table or States */}
       {loading ? (
-        <Center py={16}>
-          <VStack spacing={3}>
-            <Spinner size="lg" color="#008080" thickness="3px" />
-            <Text fontSize="xs" color="gray.500">
-              Retrieving customer no-show compensation claims...
-            </Text>
-          </VStack>
-        </Center>
+        <Box py={4}>
+          <TableSkeleton rows={6} columns={6} />
+        </Box>
       ) : filteredClaims.length === 0 ? (
         <Center py={16}>
           <VStack spacing={3}>

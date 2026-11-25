@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import AppModal from "components/common/AppModal";
 import StatusBadge from "components/common/StatusBadge";
+import { TableSkeleton } from "components/common";
 import { useAppToast } from "components/feedback";
 import ErrorState from "components/feedback/ErrorState";
 import {
@@ -582,7 +583,7 @@ export default function BillingPaymentDashboard() {
   };
 
   return (
-    <Flex direction="column" pt={{ base: "120px", md: "75px" }}>
+    <Flex direction="column" pt={0}>
       {loadError && (
         <Box mb="16px">
           <ErrorState
@@ -777,7 +778,7 @@ export default function BillingPaymentDashboard() {
               </CardHeader>
               <CardBody overflowX="auto">
                 {walletLoading ? (
-                  <Center p="40px"><Spinner color={BRAND_COLOR} /></Center>
+                  <Box p={4}><TableSkeleton rows={6} columns={6} /></Box>
                 ) : filteredWithdrawals.length === 0 ? (
                   <Center p="40px"><Text color="gray.500" fontSize="sm">No payout records matching filters.</Text></Center>
                 ) : (
@@ -883,7 +884,7 @@ export default function BillingPaymentDashboard() {
               </CardHeader>
               <CardBody overflowX="auto">
                 {financeLoading ? (
-                  <Center p="40px"><Spinner color={BRAND_COLOR} /></Center>
+                  <Box p={4}><TableSkeleton rows={6} columns={6} /></Box>
                 ) : (
                   <Table variant="simple" size="sm">
                     <Thead bg={tableHeaderBg}>
@@ -945,7 +946,7 @@ export default function BillingPaymentDashboard() {
               </CardHeader>
               <CardBody overflowX="auto">
                 {refundsLoading ? (
-                  <Center p="40px"><Spinner color={BRAND_COLOR} /></Center>
+                  <Box p={4}><TableSkeleton rows={6} columns={6} /></Box>
                 ) : refundsList.length === 0 ? (
                   <Center p="40px"><Text color="gray.500" fontSize="sm">No refunds found.</Text></Center>
                 ) : (
@@ -1003,7 +1004,7 @@ export default function BillingPaymentDashboard() {
                 </CardHeader>
                 <CardBody overflowX="auto">
                   {quotationsLoading ? (
-                    <Center p="20px"><Spinner color={BRAND_COLOR} /></Center>
+                    <Box p={4}><TableSkeleton rows={5} columns={5} /></Box>
                   ) : quotationsList.length === 0 ? (
                     <Center p="20px"><Text color="gray.500" fontSize="sm">No formal quotations issued yet.</Text></Center>
                   ) : (
@@ -1057,7 +1058,7 @@ export default function BillingPaymentDashboard() {
               </CardHeader>
               <CardBody overflowX="auto">
                 {commissionLoading ? (
-                  <Center p="40px"><Spinner color={BRAND_COLOR} /></Center>
+                  <Box p={4}><TableSkeleton rows={6} columns={4} /></Box>
                 ) : (
                   <Table variant="simple" size="sm">
                     <Thead bg={tableHeaderBg}>

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { appToast } from "components/feedback/standaloneToast";
 import { normalizeError } from "errors/normalizeError";
+import { API_BASE_URL } from "config/apiConfig";
 import { clearAuth, getToken, getRefreshToken } from "./authStorage";
 import { refreshSession, isAuthEndpoint, markSessionExpired } from "./tokenRefresh";
 
@@ -49,11 +50,16 @@ export const handleSessionExpiry = (customMessage) => {
 
   // 4. Debounce (5 seconds) to prevent multiple duplicate toasts when several API calls fail simultaneously
   const now = Date.now();
+  const friendlyMessage =
+    !customMessage || /unauthorized|session expired|jwt expired|token expired|error:\s*\d+|request failed/i.test(customMessage)
+      ? "Your session has expired. Please sign in again to continue."
+      : customMessage;
+
   if (now - lastExpiryToastTime > 5000) {
     lastExpiryToastTime = now;
     appToast.warning("Session expired", {
       id: "session-expired-toast",
-      description: customMessage || "Your session has expired. Please sign in again to continue.",
+      description: friendlyMessage,
       duration: 5000,
     });
   }
@@ -149,11 +155,6 @@ if (typeof window !== "undefined" && window.fetch) {
 }
 
 // --- Configuration ---
-const API_BASE_URL = (
-  process.env.REACT_APP_API_BASE_URL || "http://13.206.118.180:7372"
-)
-  .replace(/\/api\/?$/, "")
-  .replace(/\/+$/, "");
 const BASE_URL = `${API_BASE_URL}/api`;
 const TIMEOUT_MS = 10000;
 
@@ -2176,7 +2177,10 @@ export const updateTechnicianStatus = async (statusData) => {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(statusData),
     });
-    if (!response.ok) throw new Error(`Error: ${response.status}`);
+    if (!response.ok) {
+      const serverError = await extractServerError(response);
+      throw new Error(serverError || `Error: ${response.status}`);
+    }
     return await response.json();
   } catch (error) {
     console.error("Error updating technician status:", error);
@@ -5509,14 +5513,31 @@ export const toggleTechnicianDistrictPermission = async (technicianId, districtI
   }
 };
 
-export const removeTechnicianDistrictPermission = async (technicianId, districtId, reason = "") => {
+export const removeTechnicianDistrictPermission = async (technicianId, districtId) => {
   try {
     const token = getToken();
-    const response = await fetch(`${BASE_URL}/admin/technicians/${technicianId}/districts/${districtId}`, {
+    const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+
+    // Strategy 1: Canonical REST path: DELETE /admin/technicians/:technicianId/districts/:districtId
+    let response = await fetch(`${BASE_URL}/admin/technicians/${technicianId}/districts/${districtId}`, {
       method: "DELETE",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ reason }),
+      headers,
     });
+
+    // Strategy 2: If 404/405/400, fallback to DELETE with body payload
+    if (!response.ok && (response.status === 404 || response.status === 405 || response.status === 400)) {
+      try {
+        const fallbackRes = await fetch(`${BASE_URL}/admin/technicians/${technicianId}/districts`, {
+          method: "DELETE",
+          headers,
+          body: JSON.stringify({ districtId }),
+        });
+        if (fallbackRes.ok) return await fallbackRes.json();
+      } catch {
+        // Fall back to original error
+      }
+    }
+
     if (!response.ok) throw new Error((await extractServerError(response)) || `Error: ${response.status}`);
     return await response.json();
   } catch (error) {

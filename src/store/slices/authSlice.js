@@ -29,14 +29,9 @@ import {
   isPrivilegedRole,
   normalizeRole,
 } from "config/accessPolicy";
+import { API_BASE_URL } from "config/apiConfig";
 
 export { PRIVILEGED_ROLES, isAdminRole, isOwnerRole, isPrivilegedRole };
-
-const API_BASE_URL = (
-  process.env.REACT_APP_API_BASE_URL || "http://13.206.118.180:7372"
-)
-  .replace(/\/api\/?$/, "")
-  .replace(/\/+$/, "");
 
 // Preserve the exact legacy login request (URL, payload, response reading).
 export const loginOwner = createAsyncThunk(
@@ -81,12 +76,10 @@ export const loginOwner = createAsyncThunk(
           ? "NETWORK_ERROR"
           : status === 429
           ? "TOO_MANY_ATTEMPTS"
-          : status === 401
+          : status === 401 || status === 404
           ? "INVALID_CREDENTIALS"
           : status === 403
           ? "FORBIDDEN"
-          : status === 404
-          ? "USER_NOT_FOUND"
           : "SERVER_ERROR");
 
       const serverMessage =
@@ -101,6 +94,8 @@ export const loginOwner = createAsyncThunk(
       } else if (status === 429) {
         friendlyMessage =
           serverMessage || "Too many login attempts. Please wait 15 minutes before trying again.";
+      } else if (status === 401 || status === 404) {
+        friendlyMessage = "Invalid mobile number or password. Please verify your credentials and try again.";
       } else if (!friendlyMessage) {
         friendlyMessage = err.message || "An unexpected error occurred during login.";
       }
@@ -134,19 +129,13 @@ export const verifySession = createAsyncThunk(
     }
 
     try {
-      // Expired access token + stored refresh token = silent restore.
-      if (isJwtExpired(token)) {
-        if (!getRefreshToken()) {
-          clearAuth();
-          return rejectWithValue({
-            status: 401,
-            code: "SESSION_EXPIRED",
-            message: "Your session has expired. Please sign in again.",
-            detail: "",
-            keepSession: false,
-          });
+      // If access token appears expired and a rotating refresh token is stored, silently restore.
+      if (isJwtExpired(token) && getRefreshToken()) {
+        try {
+          token = await refreshSession({ staleToken: token });
+        } catch (e) {
+          // If refresh fails with a non-terminal error, continue to try profile with current token
         }
-        token = await refreshSession({ staleToken: token });
       }
 
       let res;
@@ -245,14 +234,6 @@ const readStoredSession = () => {
     const token = getToken();
     const user = getUser();
     if (!token || !user) return { token: null, user: null, role: "" };
-    if (isJwtExpired(token)) {
-      // Expired access token is still restorable when a rotating refresh
-      // token exists; verifySession() refreshes before calling /user/me.
-      if (!getRefreshToken()) {
-        clearAuth();
-        return { token: null, user: null, role: "" };
-      }
-    }
     const role = normalizeRole(user?.role || user?.roleName);
     if (!isPrivilegedRole(role)) {
       clearAuth();

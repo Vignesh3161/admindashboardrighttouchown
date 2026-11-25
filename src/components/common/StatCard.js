@@ -9,6 +9,7 @@ import {
   StatLabel,
   StatNumber,
   Spinner,
+  Skeleton,
 } from "@chakra-ui/react";
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
@@ -167,7 +168,7 @@ function MiniVariant({
               mt={0.5}
               noOfLines={1}
             >
-              {loading ? <Spinner size="xs" /> : value}
+              {loading ? <Skeleton height="24px" width="40px" display="inline-block" /> : value}
             </StatNumber>
           </Stat>
           <Box

@@ -37,6 +37,7 @@ import {
 } from "react-icons/fa";
 import { MdRefresh } from "react-icons/md";
 import { useAppToast } from "components/feedback";
+import { TableSkeleton } from "components/common";
 import TablePagination from "components/common/TablePagination";
 import StatusBadge from "components/common/StatusBadge";
 import { getMissingBaseLocations } from "api/scheduling";
@@ -161,14 +162,9 @@ export default function TechnicianBaseLocationTab({ onRefreshMissingCount }) {
 
       {/* Table or States */}
       {loading ? (
-        <Center py={16}>
-          <VStack spacing={3}>
-            <Spinner size="lg" color="#008080" thickness="3px" />
-            <Text fontSize="xs" color="gray.500">
-              Checking approved technician base locations...
-            </Text>
-          </VStack>
-        </Center>
+        <Box py={4}>
+          <TableSkeleton rows={6} columns={6} />
+        </Box>
       ) : filteredTechs.length === 0 ? (
         <Center py={16}>
           <VStack spacing={3}>

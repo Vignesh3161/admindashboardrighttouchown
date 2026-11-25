@@ -13,19 +13,23 @@ import {
 import { applySocketCounts } from "store/slices/notificationsSlice";
 import { getToken, getRefreshToken, handleSessionExpiry } from "views/utils/axiosInstance";
 import { refreshSession } from "views/utils/tokenRefresh";
-
-const API_ORIGIN = (
-  process.env.REACT_APP_API_BASE_URL || "http://13.206.118.180:7372"
-)
-  .replace(/\/api\/?$/, "")
-  .replace(/\/+$/, "");
+import { API_ORIGIN } from "config/apiConfig";
 
 export const ADMIN_PRODUCT_FLOW_EVENT = "admin_product_flow_updated";
+export const ADMIN_SCHEDULED_POOL_EVENT = "rt:scheduled_pool_event";
 
 const PRODUCT_EVENTS = [
   ["product_quote_request:changed", "quote_request"],
   ["product_quotation:changed", "quotation"],
   ["product_booking:changed", "booking"],
+];
+
+const SCHEDULED_POOL_EVENTS = [
+  "scheduled_pool_escalated",
+  "scheduled_pool_overdue",
+  "scheduled_pool_claimed",
+  "scheduled_pool_reopened",
+  "scheduled_pool_new_job",
 ];
 
 export const useAdminSocket = () => {
@@ -67,6 +71,14 @@ export const useAdminSocket = () => {
       );
     };
 
+    const handleScheduledPoolEvent = (eventName) => (payload) => {
+      window.dispatchEvent(
+        new CustomEvent(ADMIN_SCHEDULED_POOL_EVENT, {
+          detail: { event: eventName, payload },
+        })
+      );
+    };
+
     const handlePaymentSuccess = (payload) => {
       if (payload?.itemType !== "product") return;
       window.dispatchEvent(
@@ -97,19 +109,17 @@ export const useAdminSocket = () => {
       reconnectAttemptInFlight = true;
       try {
         const refreshToken = getRefreshToken();
-        if (!refreshToken) {
-          socket.disconnect();
-          handleSessionExpiry("Socket authentication expired");
-          return;
-        }
-        const token = await refreshSession({ staleToken: getToken() });
-        if (token) {
-          socket.auth = { token };
-          if (!socket.connected) socket.connect();
+        if (refreshToken) {
+          const token = await refreshSession({ staleToken: getToken() });
+          if (token) {
+            socket.auth = { token };
+            if (!socket.connected) socket.connect();
+          }
         }
       } catch (err) {
-        socket.disconnect();
-        handleSessionExpiry(err?.message || "Session expired");
+        // Socket connection errors are real-time transport issues;
+        // they must NEVER terminate the active dashboard session.
+        console.warn("Socket authentication blip (non-terminal):", err?.message);
       } finally {
         reconnectAttemptInFlight = false;
       }
@@ -121,6 +131,9 @@ export const useAdminSocket = () => {
     PRODUCT_EVENTS.forEach(([event, entity]) => {
       socket.on(event, handleProductEvent(entity));
     });
+    SCHEDULED_POOL_EVENTS.forEach((event) => {
+      socket.on(event, handleScheduledPoolEvent(event));
+    });
     socket.on("payment_success", handlePaymentSuccess);
     socket.on("session:replaced", handleSessionEnd);
     socket.on("session:revoked", handleSessionEnd);
@@ -128,6 +141,9 @@ export const useAdminSocket = () => {
     return () => {
       socket.off("admin:unread_counts_updated", handleCounts);
       PRODUCT_EVENTS.forEach(([event]) => {
+        socket.off(event);
+      });
+      SCHEDULED_POOL_EVENTS.forEach((event) => {
         socket.off(event);
       });
       socket.off("payment_success", handlePaymentSuccess);

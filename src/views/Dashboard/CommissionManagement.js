@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import AppModal from "components/common/AppModal";
 import RefreshButton from "components/common/RefreshButton";
 import StatusBadge from "components/common/StatusBadge";
+import { TableSkeleton } from "components/common";
 import { useAppToast } from "components/feedback";
 import ErrorState from "components/feedback/ErrorState";
 import {
@@ -48,6 +49,14 @@ import {
   Divider,
   Tag,
   Tooltip,
+  useColorMode,
+  Drawer,
+  DrawerBody,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
 } from "@chakra-ui/react";
 
 import Card from "components/Card/Card.js";
@@ -135,6 +144,8 @@ const globalScrollbarStyles = {
 export default function CommissionManagement() {
   const toast = useAppToast();
   const dispatch = useAppDispatch();
+  const { colorMode } = useColorMode();
+  const isDark = colorMode === "dark";
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
 
@@ -694,9 +705,9 @@ export default function CommissionManagement() {
   return (
     <Flex
       flexDirection="column"
-      pt={{ base: "120px", md: "80px" }}
+      pt={0}
       pb="28px"
-      px={{ base: 3, md: 6 }}
+      px={0}
       minH="100vh"
       overflowY="auto"
       css={globalScrollbarStyles}
@@ -714,7 +725,16 @@ export default function CommissionManagement() {
       {/* ------------------------------------------------------------- */}
       {/* 1. KPI STAT CARDS BANNER                                        */}
       {/* ------------------------------------------------------------- */}
-      <Box mb={5} flexShrink={0}>
+      <Box
+        position={{ base: "static", md: "sticky" }}
+        top={{ base: "0", md: "64px" }}
+        zIndex="900"
+        bg="gray.50"
+        pt={{ base: 1, md: 2 }}
+        pb={{ base: 2, md: 3 }}
+        mb={5}
+        flexShrink={0}
+      >
         <SimpleGrid columns={{ base: 1, sm: 2, md: 3, xl: 5 }} spacing={{ base: 3, md: 4 }} mb={{ base: 3, md: 4 }}>
           {[
             {
@@ -962,9 +982,9 @@ export default function CommissionManagement() {
               {/* Commissions Table */}
               <Box overflowX="auto" borderRadius="12px" border="1px solid" borderColor="gray.200">
                 {isLoadingCommissions ? (
-                  <Flex justify="center" align="center" py={12}>
-                    <Spinner size="lg" color={BRAND} />
-                  </Flex>
+                  <Box p={4}>
+                    <TableSkeleton rows={6} columns={7} />
+                  </Box>
                 ) : (
                   <Table size="sm" variant="simple">
                     <Thead bg="gray.50">
@@ -1238,9 +1258,9 @@ export default function CommissionManagement() {
 
               <Box overflowX="auto" borderRadius="12px" border="1px solid" borderColor="gray.200">
                 {isLoadingBookings ? (
-                  <Flex justify="center" align="center" py={12}>
-                    <Spinner size="lg" color={BRAND} />
-                  </Flex>
+                  <Box p={4}>
+                    <TableSkeleton rows={6} columns={7} />
+                  </Box>
                 ) : (
                   <Table size="sm" variant="simple">
                     <Thead bg="gray.50">
@@ -1480,9 +1500,9 @@ export default function CommissionManagement() {
 
               <Box overflowX="auto" borderRadius="12px" border="1px solid" borderColor="gray.200">
                 {isLoadingLogs ? (
-                  <Flex justify="center" align="center" py={12}>
-                    <Spinner size="lg" color={BRAND} />
-                  </Flex>
+                  <Box p={4}>
+                    <TableSkeleton rows={6} columns={7} />
+                  </Box>
                 ) : (
                   <Table size="sm" variant="simple">
                     <Thead bg="gray.50">
@@ -1565,9 +1585,15 @@ export default function CommissionManagement() {
       </Card>
 
       {/* ============================================================= */}
-      {/* MODAL 1: CREATE / UPDATE / SCHEDULE COMMISSION RULE           */}
       {/* ============================================================= */}
-      <AppModal isOpen={isRuleModalOpen} onClose={() => setIsRuleModalOpen(false)} size="xl" isCentered headerBg="white" headerColor="gray.800" closeButtonColor="gray.800" title={<><HStack spacing={2.5}>
+      {/* DRAWER 1: CREATE / UPDATE / SCHEDULE COMMISSION RULE        */}
+      {/* ============================================================= */}
+      <Drawer isOpen={isRuleModalOpen} onClose={() => setIsRuleModalOpen(false)} placement="right" size="md">
+        <DrawerOverlay />
+        <DrawerContent bg={isDark ? "gray.850" : "white"}>
+          <DrawerCloseButton />
+          <DrawerHeader borderBottomWidth="1px" borderColor={isDark ? "gray.700" : "gray.200"}>
+            <HStack spacing={2.5}>
               <Flex
                 w="36px"
                 h="36px"
@@ -1593,21 +1619,9 @@ export default function CommissionManagement() {
                     : "Configure platform revenue cut applied to new bookings"}
                 </Text>
               </Box>
-            </HStack></>} footer={<><Button variant="ghost" mr={3} size="sm" onClick={() => setIsRuleModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              bg={isSchedulingMode ? "purple.600" : BRAND}
-              _hover={{ bg: isSchedulingMode ? "purple.700" : BRAND_DARK }}
-              _active={{ bg: isSchedulingMode ? "purple.800" : "#004d4d" }}
-              color="white"
-              size="sm"
-              borderRadius="8px"
-              isLoading={isSubmittingRule}
-              onClick={handleSubmitRule}
-            >
-              {isSchedulingMode ? "Confirm & Schedule" : targetCommissionItem ? "Confirm Rate Update" : "Create Commission Rule"}
-            </Button></>}>
+            </HStack>
+          </DrawerHeader>
+          <DrawerBody py={5}>
             <VStack spacing={4} align="stretch">
               {/* Service Selector */}
               <FormControl isRequired>
@@ -1739,13 +1753,37 @@ export default function CommissionManagement() {
                 />
               </FormControl>
             </VStack>
-
-</AppModal>
+          </DrawerBody>
+          <DrawerFooter borderTopWidth="1px" borderColor={isDark ? "gray.700" : "gray.200"}>
+            <Button variant="ghost" mr={3} size="sm" onClick={() => setIsRuleModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              bg={isSchedulingMode ? "purple.600" : BRAND}
+              _hover={{ bg: isSchedulingMode ? "purple.700" : BRAND_DARK }}
+              _active={{ bg: isSchedulingMode ? "purple.800" : "#004d4d" }}
+              color="white"
+              size="sm"
+              borderRadius="8px"
+              isLoading={isSubmittingRule}
+              onClick={handleSubmitRule}
+            >
+              {isSchedulingMode ? "Confirm & Schedule" : targetCommissionItem ? "Confirm Rate Update" : "Create Commission Rule"}
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       {/* ============================================================= */}
-      {/* MODAL 2: SERVICE COMMISSION AUDIT HISTORY                     */}
       {/* ============================================================= */}
-      <AppModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} size="xl" isCentered headerBg="white" headerColor="gray.800" closeButtonColor="gray.800" bodyMaxH="65vh" title={<><HStack spacing={2.5} align="flex-start">
+      {/* DRAWER 2: SERVICE COMMISSION AUDIT HISTORY                  */}
+      {/* ============================================================= */}
+      <Drawer isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} placement="right" size="md">
+        <DrawerOverlay />
+        <DrawerContent bg={isDark ? "gray.850" : "white"}>
+          <DrawerCloseButton />
+          <DrawerHeader borderBottomWidth="1px" borderColor={isDark ? "gray.700" : "gray.200"}>
+            <HStack spacing={2.5} align="flex-start">
               <Flex w="36px" h="36px" borderRadius="10px" bg="teal.50" color={BRAND} align="center" justify="center" flexShrink={0} mt={0.5}>
                 <Icon as={FaHistory} boxSize={5} />
               </Flex>
@@ -1762,9 +1800,9 @@ export default function CommissionManagement() {
                   </Tag>
                 </HStack>
               </Box>
-            </HStack></>} footer={<><Button size="sm" onClick={() => setIsHistoryModalOpen(false)} borderRadius="8px">
-              Close
-            </Button></>}>
+            </HStack>
+          </DrawerHeader>
+          <DrawerBody py={5}>
             {/* Current Active Configuration Snapshot */}
             {historyService && (
               <Box mb={4} p={3.5} bg="gray.50" borderRadius="12px" border="1px solid" borderColor="gray.200">
@@ -1806,9 +1844,9 @@ export default function CommissionManagement() {
             </Text>
 
             {isLoadingHistory ? (
-              <Flex justify="center" align="center" py={8}>
-                <Spinner color={BRAND} />
-              </Flex>
+              <Box p={4}>
+                <TableSkeleton rows={4} columns={4} />
+              </Box>
             ) : historyList.length === 0 ? (
               <VStack py={6} px={4} bg="gray.50" borderRadius="12px" border="1px dashed" borderColor="gray.300" spacing={2} textAlign="center">
                 <Icon as={FaInfoCircle} color="teal.500" boxSize={6} />
@@ -1840,34 +1878,34 @@ export default function CommissionManagement() {
                 ))}
               </VStack>
             )}
-
-</AppModal>
+          </DrawerBody>
+          <DrawerFooter borderTopWidth="1px" borderColor={isDark ? "gray.700" : "gray.200"}>
+            <Button size="sm" variant="outline" onClick={() => setIsHistoryModalOpen(false)}>
+              Close History
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       {/* ============================================================= */}
-      {/* MODAL 3: BOOKING COMMISSION OVERRIDE MODAL                    */}
       {/* ============================================================= */}
-      <AppModal isOpen={isOverrideModalOpen} onClose={() => setIsOverrideModalOpen(false)} size="lg" isCentered headerBg="white" headerColor="gray.800" closeButtonColor="gray.800" title={<><HStack spacing={2.5}>
+      {/* DRAWER 3: BOOKING COMMISSION OVERRIDE DRAWER                */}
+      {/* ============================================================= */}
+      <Drawer isOpen={isOverrideModalOpen} onClose={() => setIsOverrideModalOpen(false)} placement="right" size="md">
+        <DrawerOverlay />
+        <DrawerContent bg={isDark ? "gray.850" : "white"}>
+          <DrawerCloseButton />
+          <DrawerHeader borderBottomWidth="1px" borderColor={isDark ? "gray.700" : "gray.200"}>
+            <HStack spacing={2.5}>
               <Flex w="36px" h="36px" borderRadius="10px" bg="purple.50" color="purple.600" align="center" justify="center">
                 <Icon as={FaCalculator} boxSize={5} />
               </Flex>
               <Box>
                 <Text fontSize="md" fontWeight="800">Override Booking Commission</Text>
               </Box>
-            </HStack></>} footer={<><Button variant="ghost" mr={3} size="sm" onClick={() => setIsOverrideModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              bg="purple.600"
-              _hover={{ bg: "purple.700" }}
-              _active={{ bg: "purple.800" }}
-              color="white"
-              size="sm"
-              borderRadius="8px"
-              isLoading={isSubmittingOverride}
-              onClick={handleSubmitOverride}
-            >
-              Confirm Override
-            </Button></>}>
+            </HStack>
+          </DrawerHeader>
+          <DrawerBody py={5}>
             {selectedBookingForOverride && (
               <VStack spacing={4} align="stretch">
                 <Box p={3.5} bg="purple.50" borderRadius="12px" border="1px solid" borderColor="purple.200">
@@ -1967,8 +2005,26 @@ export default function CommissionManagement() {
                 </FormControl>
               </VStack>
             )}
-
-</AppModal>
+          </DrawerBody>
+          <DrawerFooter borderTopWidth="1px" borderColor={isDark ? "gray.700" : "gray.200"}>
+            <Button variant="ghost" mr={3} size="sm" onClick={() => setIsOverrideModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              bg="purple.600"
+              _hover={{ bg: "purple.700" }}
+              _active={{ bg: "purple.800" }}
+              color="white"
+              size="sm"
+              borderRadius="8px"
+              isLoading={isSubmittingOverride}
+              onClick={handleSubmitOverride}
+            >
+              Confirm Override
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
       {/* ============================================================= */}
       {/* MODAL 4: AUDIT LOG DETAILS MODAL (Using Global InspectionModal) */}

@@ -3,6 +3,7 @@ import { Box, Portal, Spinner, Flex } from "@chakra-ui/react";
 import Footer from "components/Footer/Footer.js";
 // core components
 import AuthNavbar from "components/Navbars/AuthNavbar.js";
+import { PageSkeleton } from "components/common";
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import routes from "routes.js";
@@ -95,9 +96,9 @@ export default function Pages(props) {
         <Box ref={wrapper} w="100%">
           <React.Suspense
             fallback={
-              <Flex justify="center" align="center" minH="50vh" w="100%">
-                <Spinner size="xl" color="#008080" thickness="4px" speed="0.65s" emptyColor="gray.200" />
-              </Flex>
+              <Box w="100%" py={8}>
+                <PageSkeleton type="form" />
+              </Box>
             }
           >
             <Routes>

@@ -33,6 +33,7 @@ import {
 import { MdRefresh } from "react-icons/md";
 import { useAppToast } from "components/feedback";
 import StatusBadge from "components/common/StatusBadge";
+import { StatsGridSkeleton, TableSkeleton } from "components/common";
 import { getZoneHealthDashboard } from "api/scheduling";
 
 export default function ZoneHealthTab() {
@@ -98,14 +99,10 @@ export default function ZoneHealthTab() {
       )}
 
       {loading ? (
-        <Center py={16}>
-          <VStack spacing={3}>
-            <Spinner size="lg" color="#008080" thickness="3px" />
-            <Text fontSize="xs" color="gray.500">
-              Analyzing operational zone supply metrics and geofence health...
-            </Text>
-          </VStack>
-        </Center>
+        <Box py={4}>
+          <StatsGridSkeleton count={4} />
+          <TableSkeleton rows={5} columns={5} />
+        </Box>
       ) : !healthData ? (
         <Center py={16}>
           <VStack spacing={3}>

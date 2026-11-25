@@ -85,42 +85,52 @@ export default function ErrorState({
       align="center"
       justify="center"
       textAlign="center"
-      px={6}
-      py={10}
-      minH="240px"
+      px={{ base: 6, md: 10 }}
+      py={{ base: 8, md: 12 }}
+      minH="300px"
       border="1px solid"
       borderColor={border}
-      borderRadius="12px"
+      borderRadius="18px"
       bg={surface}
+      boxShadow="sm"
       {...rest}
     >
       <Flex
-        w="52px"
-        h="52px"
-        borderRadius="12px"
+        w="60px"
+        h="60px"
+        borderRadius="16px"
         bg={iconBg}
         color={iconColor}
         align="center"
         justify="center"
         mb={4}
+        boxShadow="xs"
       >
-        <Icon as={icon} boxSize={7} />
+        <Icon as={icon} boxSize={8} />
       </Flex>
-      <Text fontSize="md" fontWeight="800" color={titleColor}>
+      <Text fontSize="lg" fontWeight="800" color={titleColor} letterSpacing="-0.2px">
         {effectiveTitle}
       </Text>
-      <Text fontSize="sm" color={bodyColor} mt={2} maxW="460px" lineHeight="1.6">
+      <Text fontSize="sm" color={bodyColor} mt={2} maxW="520px" lineHeight="1.6">
         {effectiveDescription}
       </Text>
       {effectiveRequestId ? (
-        <Text fontSize="xs" color={bodyColor} mt={2} fontFamily="mono">
-          Ref: {effectiveRequestId}
+        <Text fontSize="xs" color="gray.500" mt={2.5} fontFamily="mono" bg="gray.100" px={2.5} py={0.5} borderRadius="md">
+          Diagnostic Ref: {effectiveRequestId}
         </Text>
       ) : null}
       {onRetry || action ? (
-        <Flex mt={5} gap={3} flexWrap="wrap" justify="center">
+        <Flex mt={6} gap={3} flexWrap="wrap" justify="center">
           {onRetry ? (
-            <Button size="sm" colorScheme="teal" leftIcon={<MdRefresh />} onClick={onRetry}>
+            <Button
+              size="md"
+              colorScheme="teal"
+              leftIcon={<MdRefresh />}
+              onClick={onRetry}
+              borderRadius="10px"
+              px={5}
+              fontWeight="semibold"
+            >
               {retryLabel}
             </Button>
           ) : null}

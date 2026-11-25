@@ -33,6 +33,7 @@ import CardBody from "components/Card/CardBody.js";
 import AppModal from "components/common/AppModal";
 import RefreshButton from "components/common/RefreshButton";
 import StatusBadge from "components/common/StatusBadge";
+import { PageSkeleton, TableSkeleton } from "components/common";
 import FormErrorSummary from "components/feedback/FormErrorSummary";
 import { useAppToast } from "components/feedback";
 import { useAppDispatch, useAppSelector } from "store/hooks";
@@ -318,15 +319,11 @@ export default function CredentialManagement() {
   };
 
   if (!authInitialized || !isOwner) {
-    return (
-      <Flex justify="center" align="center" minH="60vh">
-        <Spinner size="xl" color={BRAND} thickness="4px" />
-      </Flex>
-    );
+    return <PageSkeleton type="table" statsCount={0} columns={5} rows={6} />;
   }
 
   return (
-    <Box pt={{ base: "120px", md: "75px" }}>
+    <Box pt={0}>
       <Card>
         <CardBody>
           <Flex
@@ -392,9 +389,9 @@ export default function CredentialManagement() {
               onRetry={fetchUsers}
             />
           ) : loading ? (
-            <Center py={16}>
-              <Spinner size="lg" color={BRAND} />
-            </Center>
+            <Box py={4}>
+              <TableSkeleton rows={6} columns={5} />
+            </Box>
           ) : users.length === 0 ? (
             <Center py={16}>
               <Text color="gray.500">No Admin or Owner credentials found.</Text>

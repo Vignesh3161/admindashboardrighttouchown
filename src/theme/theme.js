@@ -2,6 +2,8 @@ import { extendTheme } from "@chakra-ui/react";
 import { globalStyles } from "./styles";
 import { breakpoints } from "./foundations/breakpoints";
 import { radii } from "./foundations/radii";
+import { fonts } from "./foundations/fonts";
+import { fontSizes } from "./foundations/fontSizes";
 import { buttonStyles } from "./components/button";
 import { badgeStyles } from "./components/badge";
 import { linkStyles } from "./components/link";
@@ -19,7 +21,7 @@ const config = {
 
 export default extendTheme(
   { config },
-  { breakpoints, radii }, // Breakpoints & Radii tokens
+  { breakpoints, radii, fonts, fontSizes }, // Foundations tokens
   globalStyles,
   buttonStyles, // Button styles
   badgeStyles, // Badge styles

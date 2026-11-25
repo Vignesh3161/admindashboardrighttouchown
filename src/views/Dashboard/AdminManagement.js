@@ -24,24 +24,24 @@ import {
   Skeleton,
   SkeletonCircle,
   HStack,
+  VStack,
   Tooltip,
   Menu,
   MenuButton,
   MenuList,
   MenuItem,
   Divider,
+  SimpleGrid,
 } from "@chakra-ui/react";
 import Card from "components/Card/Card.js";
 import CardBody from "components/Card/CardBody.js";
 import CardHeader from "components/Card/CardHeader.js";
 import {
   AdminStatsCards,
-  KYCReviewModal,
-  EditKYCModal,
-  BankDetailsModal,
-  EditBankModal,
-  AdminDetailsModal,
+  TechnicianDetailsDrawer,
   DeleteTechnicianDialog,
+  WorkStatusPrerequisitesModal,
+  evaluateWorkStatusEligibility,
 } from "components/AdminManagement";
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
@@ -55,13 +55,20 @@ import {
   FaEllipsisV,
   FaCheck,
   FaTimes,
+  FaWallet,
+  FaLock,
+  FaUnlock,
+  FaMoneyBillWave,
 } from "react-icons/fa";
+import { freezeTechnicianPayout } from "api/wallet";
 import DataTable from "components/common/DataTable";
 import RefreshButton from "components/common/RefreshButton";
 import StatusBadge from "components/common/StatusBadge";
 import ConfirmActionModal from "components/common/ConfirmActionModal";
+import { PageSkeleton, TableSkeleton } from "components/common";
 import ErrorState from "components/feedback/ErrorState";
 import { useAppToast } from "components/feedback";
+import { API_ORIGIN } from "config/apiConfig";
 import { MdOutlinePending } from "react-icons/md";
 import {
   getKYCFullPII,
@@ -94,7 +101,7 @@ import {
   removeTechnician,
   removeKYC,
 } from "store/slices/techniciansSlice";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 // High-performance index cache for O(1) KYC record lookups
 const kycIndexCache = new WeakMap();
@@ -426,43 +433,58 @@ const getTechnicianEmail = (tech, kycRecords = []) => {
 
 // Helper to resolve technician address safely
 const getTechnicianAddress = (tech, kycRecords = []) => {
-  if (!tech) return "N/A";
+  if (!tech) return "Address not provided";
+
+  // 1. Structured location/address parts from technician profile
+  const parts = [];
+  if (tech.address && typeof tech.address === "string" && tech.address.trim()) parts.push(tech.address.trim());
+  if (tech.locality && typeof tech.locality === "string" && tech.locality.trim() && !parts.includes(tech.locality.trim())) parts.push(tech.locality.trim());
+  if (tech.city && typeof tech.city === "string" && tech.city.trim() && !parts.includes(tech.city.trim())) parts.push(tech.city.trim());
+  if (tech.state && typeof tech.state === "string" && tech.state.trim() && !parts.includes(tech.state.trim())) parts.push(tech.state.trim());
+  if (tech.pincode && typeof tech.pincode === "string" && tech.pincode.trim() && !parts.includes(tech.pincode.trim())) parts.push(tech.pincode.trim());
+  if (parts.length > 0) return parts.join(", ");
+
+  // 2. Object or raw address
   const rawAddr =
     tech.address ||
     tech.locality ||
     tech.profile?.address ||
+    tech.currentLocation?.address ||
     tech.userId?.address ||
     tech.user?.address ||
     "";
 
   if (typeof rawAddr === "string" && rawAddr.trim()) return rawAddr.trim();
   if (typeof rawAddr === "object" && rawAddr !== null) {
-    const parts = [
+    const p = [
       rawAddr.line1 || rawAddr.street || rawAddr.addressLine1 || rawAddr.house,
       rawAddr.line2 || rawAddr.addressLine2 || rawAddr.area,
       rawAddr.city || rawAddr.district,
       rawAddr.pincode || rawAddr.zip || rawAddr.postalCode,
     ].filter(Boolean);
-    if (parts.length > 0) return parts.join(", ");
+    if (p.length > 0) return p.join(", ");
   }
 
-  // Check KYC
+  // 3. Check KYC
   if (Array.isArray(kycRecords) && kycRecords.length > 0) {
     const kycMatch = findKYCRecord(tech, kycRecords);
     if (kycMatch?.address) {
       if (typeof kycMatch.address === "string" && kycMatch.address.trim()) return kycMatch.address.trim();
       if (typeof kycMatch.address === "object") {
-        const parts = [
+        const kparts = [
           kycMatch.address.line1 || kycMatch.address.street,
           kycMatch.address.city,
           kycMatch.address.pincode,
         ].filter(Boolean);
-        if (parts.length > 0) return parts.join(", ");
+        if (kparts.length > 0) return kparts.join(", ");
       }
+    }
+    if (kycMatch?.aadhaarAddress && typeof kycMatch.aadhaarAddress === "string" && kycMatch.aadhaarAddress.trim()) {
+      return kycMatch.aadhaarAddress.trim();
     }
   }
 
-  return "N/A";
+  return "Address not provided";
 };
 
 // Helper to resolve technician specialization formatted cleanly
@@ -487,6 +509,15 @@ const getTechnicianApprovedDistricts = (tech, masterDistricts = []) => {
   const refs = [
     ...(Array.isArray(tech.enabledDistrictIds) ? tech.enabledDistrictIds : []),
     ...(Array.isArray(tech.allowedCityIds) ? tech.allowedCityIds : []),
+    ...(Array.isArray(tech.districts) ? tech.districts : []),
+    ...(Array.isArray(tech.serviceDistricts) ? tech.serviceDistricts : []),
+    ...(tech.primaryDistrictId ? [tech.primaryDistrictId] : []),
+    ...(tech.primaryCityId ? [tech.primaryCityId] : []),
+    ...(tech.districtId ? [tech.districtId] : []),
+    ...(tech.district ? [tech.district] : []),
+    ...(tech.operationalCityId ? [tech.operationalCityId] : []),
+    ...(tech.profile?.district ? [tech.profile.district] : []),
+    ...(tech.address?.district ? [tech.address.district] : []),
   ];
   const map = new Map();
 
@@ -498,6 +529,7 @@ const getTechnicianApprovedDistricts = (tech, masterDistricts = []) => {
     const masterMatch = (masterDistricts || []).find(
       (district) =>
         String(district?._id || district?.id || "") === id ||
+        String(district?.name || district?.districtName || district?.city || "").toLowerCase() === id.toLowerCase() ||
         (typeof ref === "object" &&
           String(district?.name || district?.districtName || district?.city || "").toLowerCase() ===
             String(ref?.name || ref?.districtName || ref?.city || "").toLowerCase())
@@ -559,33 +591,31 @@ const getTechnicianDistrict = (tech, masterDistricts = []) => {
   return "";
 };
 
-const getTechnicianImage = (tech, kycRecords = []) => {
-  if (!tech) return "";
-  const direct =
-    tech?.profileImage ||
-    tech?.profile?.profileImage ||
-    (typeof tech?.userId === "object" ? tech?.userId?.profileImage : "") ||
-    "";
-  if (direct) return direct;
-  if (Array.isArray(kycRecords) && kycRecords.length > 0) {
-    const kycMatch = findKYCRecord(tech, kycRecords);
-    if (kycMatch?.profileImage) return kycMatch.profileImage;
-    if (kycMatch?.documents?.profileUrl) return kycMatch.documents.profileUrl;
-  }
-  return "";
-};
-
 const getImageUrl = (urlData) => {
   if (!urlData) return "";
   const url = Array.isArray(urlData) ? urlData[0] : urlData;
   if (typeof url !== "string") return "";
   if (url.startsWith("http") || url.startsWith("data:")) return url;
-  const origin = (
-    process.env.REACT_APP_API_BASE_URL || "http://13.206.118.180:7372"
-  )
-    .replace(/\/api\/?$/, "")
-    .replace(/\/+$/, "");
-  return `${origin}/${url.replace(/^\/+/, "")}`;
+  return `${API_ORIGIN}/${url.replace(/^\/+/, "")}`;
+};
+
+const getTechnicianImage = (tech, kycRecords = []) => {
+  if (!tech) return "";
+  const direct =
+    tech?.profileImage ||
+    tech?.profile?.profileImage ||
+    tech?.avatar ||
+    tech?.photo ||
+    (typeof tech?.userId === "object" ? (tech?.userId?.profileImage || tech?.userId?.photo) : "") ||
+    "";
+  if (direct) return getImageUrl(direct);
+  if (Array.isArray(kycRecords) && kycRecords.length > 0) {
+    const kycMatch = findKYCRecord(tech, kycRecords);
+    if (kycMatch?.profileImage) return getImageUrl(kycMatch.profileImage);
+    if (kycMatch?.documents?.profileUrl) return getImageUrl(kycMatch.documents.profileUrl);
+    if (kycMatch?.photo) return getImageUrl(kycMatch.photo);
+  }
+  return "";
 };
 
 const isTechnicianKYCVerified = (admin, kycRecords = []) => {
@@ -681,13 +711,47 @@ function AdminManagement() {
   const [currentUser, setCurrentUser] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  // Active View & Filter states: 'all' | 'NewTechnician' | 'Active' | 'KYCVerification' | 'BankVerification'
-  const [activeTab, setActiveTab] = useState("all");
-  const [subFilter, setSubFilter] = useState("all"); // dropdown filter within view
+  // Granular Filter states
+  const [bankFilter, setBankFilter] = useState("all"); // 'all' | 'verified' | 'unverified' | 'rejected'
+  const [kycFilter, setKycFilter] = useState("all"); // 'all' | 'verified' | 'pending' | 'rejected'
+  const [trainingFilter, setTrainingFilter] = useState("all"); // 'all' | 'completed' | 'pending'
+  const [workStatusFilter, setWorkStatusFilter] = useState("all"); // 'all' | 'approved' | 'pending' | 'suspended'
   const [districtCategory, setDistrictCategory] = useState("all"); // 'all' | 'created' | 'non_created'
-  const [districtFilter, setDistrictFilter] = useState("all"); // specific district or '__created_all__' | '__non_created_all__' | '__unassigned__'
+  const location = useLocation();
+  const [districtFilter, setDistrictFilter] = useState("all"); // specific district name or 'all'
   const [masterDistricts, setMasterDistricts] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(() => {
+    const q = new URLSearchParams(location.search).get("search");
+    return q ? decodeURIComponent(q) : "";
+  });
+
+  useEffect(() => {
+    const q = new URLSearchParams(location.search).get("search");
+    if (q !== null && q !== undefined) {
+      setSearchTerm(decodeURIComponent(q));
+      setCurrentPage(1);
+    }
+  }, [location.search]);
+
+  const hasActiveFilters =
+    bankFilter !== "all" ||
+    kycFilter !== "all" ||
+    trainingFilter !== "all" ||
+    workStatusFilter !== "all" ||
+    districtCategory !== "all" ||
+    districtFilter !== "all" ||
+    searchTerm.trim() !== "";
+
+  const handleResetFilters = () => {
+    setBankFilter("all");
+    setKycFilter("all");
+    setTrainingFilter("all");
+    setWorkStatusFilter("all");
+    setDistrictCategory("all");
+    setDistrictFilter("all");
+    setSearchTerm("");
+    setCurrentPage(1);
+  };
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -725,9 +789,21 @@ function AdminManagement() {
   });
   const [savingBankEdit, setSavingBankEdit] = useState(false);
 
-  // Technician Details Profile Modal
+  // Technician Details Profile Drawer
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedTechnician, setSelectedTechnician] = useState(null);
+  const [drawerInitialTab, setDrawerInitialTab] = useState(0);
+
+  const handleOpenTechnicianDrawer = (tech, tab = 0) => {
+    setSelectedTechnician(tech);
+    setDrawerInitialTab(tab);
+    setIsDetailsModalOpen(true);
+  };
+
+  // Work Status Prerequisites Modal
+  const [isWorkStatusPrereqModalOpen, setIsWorkStatusPrereqModalOpen] = useState(false);
+  const [workStatusPrereqTech, setWorkStatusPrereqTech] = useState(null);
+  const [workStatusPrereqEvaluation, setWorkStatusPrereqEvaluation] = useState(null);
 
   // Delete Alert
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -1023,81 +1099,62 @@ function AdminManagement() {
     return (adminData || []).length - createdDistrictTechCount;
   }, [adminData, createdDistrictTechCount]);
 
-  // Filtered dataset computation
+  // Filtered dataset computation across all 6 granular filters + search
   const filteredData = useMemo(() => {
     let list = [...adminData];
 
-    // 1. Primary Tab Filter
-    switch (activeTab) {
-      case "NewTechnician":
-        list = list.filter((a) => isNewTechnician(a, allKycRecords));
-        break;
-      case "Active":
-        list = list.filter((a) => isActiveTechnician(a, allKycRecords));
-        break;
-      case "KYCVerification":
-        // In KYC verification view, we focus on all technicians and their KYC
-        break;
-      case "BankVerification":
-        // In Bank verification view, focus on technicians with bank records or needing verification
-        break;
-      case "all":
-      default:
-        break;
+    // 1. Bank Verification Filter
+    if (bankFilter !== "all") {
+      list = list.filter((a) => {
+        const isVerified = isTechnicianBankVerified(a, allKycRecords);
+        if (bankFilter === "verified") return isVerified;
+        if (bankFilter === "unverified") return !isVerified;
+        if (bankFilter === "rejected") {
+          const kycMatch = findKYCRecord(a, allKycRecords);
+          const b = kycMatch?.bankDetails || a.bankDetails || a.profile?.bankDetails || a.bankAccount;
+          return (
+            b?.verificationStatus?.toLowerCase() === "rejected" ||
+            b?.status?.toLowerCase() === "rejected"
+          );
+        }
+        return true;
+      });
     }
 
-    // 2. Sub-filter Dropdown
-    if (subFilter !== "all") {
-      switch (subFilter) {
-        case "verified":
-          if (activeTab === "KYCVerification") {
-            list = list.filter((a) => isTechnicianKYCVerified(a, allKycRecords));
-          } else if (activeTab === "BankVerification") {
-            list = list.filter((a) => isTechnicianBankVerified(a, allKycRecords));
-          } else {
-            list = list.filter((a) => isTechnicianKYCVerified(a, allKycRecords));
-          }
-          break;
-        case "unverified":
-        case "pending":
-          if (activeTab === "KYCVerification") {
-            list = list.filter((a) => !isTechnicianKYCVerified(a, allKycRecords));
-          } else if (activeTab === "BankVerification") {
-            list = list.filter((a) => !isTechnicianBankVerified(a, allKycRecords));
-          } else {
-            list = list.filter((a) => !isTechnicianKYCVerified(a, allKycRecords));
-          }
-          break;
-        case "trainingCompleted":
-          list = list.filter((a) => a.trainingCompleted === true);
-          break;
-        case "trainingPending":
-          list = list.filter((a) => !a.trainingCompleted);
-          break;
-        case "activeStatus":
-          list = list.filter((a) => isActiveTechnician(a, allKycRecords));
-          break;
-        case "suspendedStatus":
-          list = list.filter((a) => a.workStatus === "suspended" || a.status === "Inactive");
-          break;
-        case "onlineNow":
-          list = list.filter((a) => a.availability?.isOnline === true);
-          break;
-        case "rejected":
-          list = list.filter((a) => {
-            const kycMatch = findKYCRecord(a, allKycRecords);
-            return (
-              kycMatch?.status?.toLowerCase() === "rejected" ||
-              kycMatch?.verificationStatus?.toLowerCase() === "rejected"
-            );
-          });
-          break;
-        default:
-          break;
-      }
+    // 2. KYC Status Filter
+    if (kycFilter !== "all") {
+      list = list.filter((a) => {
+        const isKyc = isTechnicianKYCVerified(a, allKycRecords);
+        const kycMatch = findKYCRecord(a, allKycRecords);
+        const kycStatus = (kycMatch?.status || kycMatch?.verificationStatus || "").toLowerCase();
+        if (kycFilter === "verified") return isKyc;
+        if (kycFilter === "pending") return !isKyc && kycStatus !== "rejected";
+        if (kycFilter === "rejected") return kycStatus === "rejected";
+        return true;
+      });
     }
 
-    // 3. District-wise Filter — approved coverage only
+    // 3. Training Status Filter
+    if (trainingFilter !== "all") {
+      list = list.filter((a) => {
+        if (trainingFilter === "completed") return Boolean(a.trainingCompleted);
+        if (trainingFilter === "pending") return !a.trainingCompleted;
+        return true;
+      });
+    }
+
+    // 4. Work Status Filter
+    if (workStatusFilter !== "all") {
+      list = list.filter((a) => {
+        const w = (a.workStatus || "pending").toLowerCase();
+        if (workStatusFilter === "approved") return w === "approved";
+        if (workStatusFilter === "pending") return w === "pending";
+        if (workStatusFilter === "suspended") return w === "suspended" || a.status === "Inactive";
+        return true;
+      });
+    }
+
+    // 5. Coverage Area Filter
     if (districtCategory === "created") {
       list = list.filter((admin) => {
         const approved = getTechnicianApprovedDistricts(admin, masterDistricts);
@@ -1110,24 +1167,18 @@ function AdminManagement() {
       });
     } else if (districtCategory === "non_created") {
       list = list.filter((admin) => !hasApprovedDistrictCoverage(admin, masterDistricts));
-    } else {
-      // districtCategory === "all"
-      if (districtFilter === "__created_all__") {
-        list = list.filter((admin) => hasApprovedDistrictCoverage(admin, masterDistricts));
-      } else if (districtFilter === "__non_created_all__" || districtFilter === "__unassigned__") {
-        list = list.filter((admin) => !hasApprovedDistrictCoverage(admin, masterDistricts));
-      } else if (districtFilter !== "all" && districtFilter.trim() !== "") {
-        const target = districtFilter.toLowerCase();
-        list = list.filter((admin) => {
-          return getTechnicianApprovedDistricts(admin, masterDistricts).some((district) => {
-            const name = district.name.toLowerCase();
-            return name === target || name.includes(target);
-          });
-        });
-      }
+    } else if (districtFilter !== "all" && districtFilter.trim() !== "") {
+      const target = districtFilter.toLowerCase();
+      list = list.filter((admin) => {
+        const approvedMatches = getTechnicianApprovedDistricts(admin, masterDistricts).some(
+          (district) => district.name.toLowerCase() === target
+        );
+        const primaryMatches = (getTechnicianDistrict(admin, masterDistricts) || "").toLowerCase() === target;
+        return approvedMatches || primaryMatches;
+      });
     }
 
-    // 4. Search Filter (Name, Email, Spec, City, District, Phone, Aadhaar, PAN, Bank Account Number, IFSC, UPI)
+    // 6. Search Filter (Name, Email, Specialization, Approved Districts, Registration District, Phone, Aadhaar, PAN, Bank Details)
     if (searchTerm.trim() !== "") {
       const q = searchTerm.toLowerCase().trim();
       const qClean = q.replace(/[\s-]/g, "");
@@ -1135,7 +1186,6 @@ function AdminManagement() {
         const fullName = getTechnicianName(admin, allKycRecords).toLowerCase();
         const email = (getTechnicianEmail(admin, allKycRecords) || "").toLowerCase();
         const spec = (getTechnicianSpecialization(admin) || "").toLowerCase();
-        const city = (admin.city || admin.profile?.city || admin.locality || "").toLowerCase();
         const approvedDistrictText = getTechnicianApprovedDistrictNames(admin, masterDistricts)
           .join(" ")
           .toLowerCase();
@@ -1157,7 +1207,6 @@ function AdminManagement() {
           fullName.includes(q) ||
           email.includes(q) ||
           spec.includes(q) ||
-          city.includes(q) ||
           approvedDistrictText.includes(q) ||
           registrationDistrict.includes(q) ||
           phone.includes(qClean) ||
@@ -1176,8 +1225,10 @@ function AdminManagement() {
   }, [
     adminData,
     allKycRecords,
-    activeTab,
-    subFilter,
+    bankFilter,
+    kycFilter,
+    trainingFilter,
+    workStatusFilter,
     districtCategory,
     districtFilter,
     searchTerm,
@@ -1189,12 +1240,6 @@ function AdminManagement() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
-
-  const handleCardClick = (tab) => {
-    setActiveTab(tab);
-    setSubFilter("all");
-    setCurrentPage(1);
-  };
 
   // Training Status Toggle (Gate 1)
   const handleToggleTraining = async (tech, nextStatus) => {
@@ -1231,13 +1276,31 @@ function AdminManagement() {
       });
       return;
     }
+
+    if (workStatus === "approved") {
+      const evaluation = evaluateWorkStatusEligibility(
+        tech,
+        allKycRecords,
+        masterDistricts,
+        isTechnicianKYCVerified,
+        isTechnicianBankVerified,
+        getTechnicianApprovedDistricts
+      );
+      if (!evaluation.isEligible) {
+        setWorkStatusPrereqTech(tech);
+        setWorkStatusPrereqEvaluation(evaluation);
+        setIsWorkStatusPrereqModalOpen(true);
+        return;
+      }
+    }
+
     try {
       setLoading(true);
       await dispatch(setWorkStatus({
         technicianId: tech._id,
         id: tech._id,
         workStatus: workStatus,
-        status: workStatus,
+        status: workStatus === "approved" ? "Active" : "Inactive",
         trainingCompleted: tech.trainingCompleted ?? true,
       })).unwrap();
       toast({
@@ -1248,6 +1311,9 @@ function AdminManagement() {
         isClosable: true,
       });
       await fetchData();
+      if (selectedTechnician && selectedTechnician._id === tech._id) {
+        setSelectedTechnician((prev) => ({ ...prev, workStatus: workStatus, status: workStatus === "approved" ? "Active" : "Inactive" }));
+      }
     } catch (err) {
       toast.error(err, { title: "Status Update Error", description: "Failed to update work status.", duration: 3000, isClosable: true });
     } finally {
@@ -1493,6 +1559,44 @@ function AdminManagement() {
     }
   };
 
+  // Toggle Technician Payout Freeze (Owner only)
+  const handleTogglePayoutFreeze = async (tech) => {
+    if (!isOwner) {
+      toast({
+        title: "Owner access required",
+        description: "Only Owners can freeze or unfreeze payouts.",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    const currentlyFrozen = tech.payoutBlocked === true;
+    const actionText = currentlyFrozen ? "unfreeze" : "freeze";
+    try {
+      const { data, error } = await freezeTechnicianPayout(tech._id, {
+        freeze: !currentlyFrozen,
+        reason: currentlyFrozen ? "Unfrozen by administrator" : "Administrative hold via Technician Management",
+      });
+      if (error) throw new Error(error);
+      toast({
+        title: currentlyFrozen ? "Payouts Unfrozen" : "Payouts Frozen",
+        description: `Successfully ${actionText}d payouts for ${getTechnicianName(tech, allKycRecords)}.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      await fetchData();
+    } catch (e) {
+      toast.error(e, {
+        title: "Freeze Toggle Failed",
+        description: e.message || `Could not ${actionText} payouts.`,
+        duration: 3500,
+        isClosable: true,
+      });
+    }
+  };
+
   // Delete Technician
   const handleDeleteConfirm = async () => {
     if (!adminToDelete) return;
@@ -1502,6 +1606,21 @@ function AdminManagement() {
         description: "Only Owner accounts can delete technicians.",
         status: "warning",
         duration: 3000,
+        isClosable: true,
+      });
+      setIsDeleteDialogOpen(false);
+      setAdminToDelete(null);
+      return;
+    }
+
+    const balancePaise = Number(adminToDelete.availableBalancePaise) || ((Number(adminToDelete.walletBalance) || 0) * 100);
+    const hasActiveBalance = balancePaise > 0 || (Number(adminToDelete.reservedBalancePaise) || 0) > 0 || (Number(adminToDelete.outstandingDuesPaise) || 0) > 0;
+    if (hasActiveBalance) {
+      toast({
+        title: "Deletion Blocked",
+        description: `Cannot delete technician with active wallet balance of ₹${(balancePaise / 100).toFixed(2)}. Settle all funds first.`,
+        status: "error",
+        duration: 4000,
         isClosable: true,
       });
       setIsDeleteDialogOpen(false);
@@ -1529,81 +1648,42 @@ function AdminManagement() {
   };
 
   if (!currentUser) {
-    return (
-      <Flex justify="center" align="center" h="100vh">
-        <Spinner size="xl" color={customColor} />
-        <Text ml={4} fontWeight="medium">
-          Checking permissions...
-        </Text>
-      </Flex>
-    );
+    return <PageSkeleton type="table" statsCount={5} columns={7} rows={8} />;
   }
-
-  // Get active tab title and helper text
-  const getTabHeader = () => {
-    switch (activeTab) {
-      case "NewTechnician":
-        return {
-          title: "⏳ New Registered Technicians",
-          subtitle: "Technicians awaiting Gate 1 Training verification and initial onboarding approval.",
-        };
-      case "Active":
-        return {
-          title: "✅ Active & Approved Technicians",
-          subtitle: "Technicians approved and available for customer job dispatch.",
-        };
-      case "KYCVerification":
-        return {
-          title: "🪪 Technician KYC Identity Verification",
-          subtitle: "Review Aadhaar, PAN, and Driving License identity submissions.",
-        };
-      case "BankVerification":
-        return {
-          title: "🏦 Technician Bank & Payout Verification",
-          subtitle: "Verify bank accounts and UPI IDs to enable earnings payouts.",
-        };
-      case "all":
-      default:
-        return {
-          title: "👥 All Technicians Directory",
-          subtitle: "Complete management of RightTouch technicians, onboarding gates, and verifications.",
-        };
-    }
-  };
-
-  const headerInfo = getTabHeader();
 
   return (
     <Flex
       flexDirection="column"
-      pt={{ base: "120px", md: "80px" }}
-      height="100vh"
-      overflow="auto"
-      css={{
-        "&::-webkit-scrollbar": { width: "8px" },
-        "&::-webkit-scrollbar-track": { background: "transparent" },
-        "&::-webkit-scrollbar-thumb": { background: "#cbd5e1", borderRadius: "24px" },
-      }}
+      pt={0}
+      w="100%"
+      minH="100%"
     >
-      {/* 5 TOP SUMMARY CARDS ONLY */}
-      <AdminStatsCards
-        activeTab={activeTab}
-        onCardClick={handleCardClick}
-        loading={loading}
-        counts={{
-          totalCount,
-          newTechCount,
-          newUnverifiedCount,
-          activeTechCount,
-          kycVerifiedCount,
-          kycUnverifiedCount,
-          bankVerifiedCount,
-          bankUnverifiedCount,
-        }}
-        customColor={customColor}
-        customBorderColor={customBorderColor}
-        textColor={textColor}
-      />
+      {/* 5 TOP SUMMARY CARDS (KPIs ONLY, NON-FILTERING) */}
+      <Box
+        position={{ base: "static", md: "sticky" }}
+        top={{ base: "0", md: "64px" }}
+        zIndex="900"
+        bg="gray.50"
+        pt={{ base: 1, md: 2 }}
+        pb={{ base: 2, md: 3 }}
+      >
+        <AdminStatsCards
+          loading={loading}
+          counts={{
+            totalCount,
+            newTechCount,
+            newUnverifiedCount,
+            activeTechCount,
+            kycVerifiedCount,
+            kycUnverifiedCount,
+            bankVerifiedCount,
+            bankUnverifiedCount,
+          }}
+          customColor={customColor}
+          customBorderColor={customBorderColor}
+          textColor={textColor}
+        />
+      </Box>
 
       {/* TABLE SECTION CONTAINER */}
       <Box flex="1" px={{ base: 2, md: 4 }} pb={4} display="flex" flexDirection="column">
@@ -1619,66 +1699,210 @@ function AdminManagement() {
           overflow="hidden"
         >
           {/* Header Controls Bar */}
-          <CardHeader p="16px" pb="12px" borderBottom="1px solid" borderColor="gray.100">
-            <Flex
-              direction={{ base: "column", lg: "row" }}
-              justify="space-between"
-              align={{ base: "stretch", lg: "center" }}
-              gap={3}
-            >
-              <Box>
-                <Heading size="md" color="gray.800">
-                  {headerInfo.title}
-                </Heading>
-              </Box>
+          <CardHeader p="16px" pb="14px" borderBottom="1px solid" borderColor="gray.100">
+            <Flex direction="column" gap={3}>
+              {/* Row 1: Search, Results Count, Reset Filters, Refresh */}
+              <Flex
+                direction={{ base: "column", sm: "row" }}
+                justify="space-between"
+                align={{ base: "stretch", sm: "center" }}
+                gap={3}
+              >
+                <HStack spacing={3} flex="1" maxW={{ base: "100%", md: "460px" }}>
+                  <InputGroup size="sm">
+                    <Input
+                      placeholder="Search name, phone, bank account, IFSC..."
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      borderRadius="8px"
+                      borderColor={`${customColor}40`}
+                      _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                    />
+                    <InputRightElement>
+                      {searchTerm ? (
+                        <IconButton
+                          size="xs"
+                          aria-label="Clear search"
+                          icon={<FaTimes />}
+                          variant="ghost"
+                          onClick={() => {
+                            setSearchTerm("");
+                            setCurrentPage(1);
+                          }}
+                        />
+                      ) : (
+                        <Icon as={FaSearch} color="gray.400" />
+                      )}
+                    </InputRightElement>
+                  </InputGroup>
+                </HStack>
 
-              {/* Controls: Search, Mandatory District Filter, Status Dropdown & Reset */}
-              <Flex align="center" gap={3} flexWrap="wrap">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  color={customColor}
-                  borderColor={customColor}
-                  leftIcon={<Icon as={FaUserGraduate} />}
-                  _hover={{ bg: customColor, color: "white" }}
-                  _active={{ bg: "#004d4d", color: "white" }}
-                  onClick={() => navigate("/owner/skill-requests")}
-                >
-                  Skill Requests
-                </Button>
+                <HStack spacing={2.5} justify={{ base: "flex-end", sm: "flex-end" }} flexWrap="wrap">
+                  {hasActiveFilters && (
+                    <Button
+                      size="sm"
+                      variant="solid"
+                      colorScheme="red"
+                      leftIcon={<Icon as={FaTimes} />}
+                      onClick={handleResetFilters}
+                    >
+                      Reset Filters
+                    </Button>
+                  )}
 
-                {/* Search */}
-                <InputGroup size="sm" maxW={{ base: "100%", sm: "300px" }}>
-                  <Input
-                    placeholder="Search name, phone, bank account, IFSC..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    borderRadius="8px"
-                    borderColor={`${customColor}40`}
-                    _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  <RefreshButton
+                    iconOnly
+                    isLoading={loading}
+                    onClick={fetchData}
+                    aria-label="Refresh technicians and verifications"
+                    color={customColor}
+                    borderColor={`${customColor}50`}
+                    _hover={{ bg: `${customColor}10`, borderColor: customColor }}
+                    _active={{ bg: `${customColor}20`, borderColor: customColor }}
                   />
-                  <InputRightElement>
-                    {searchTerm ? (
-                      <IconButton
-                        size="xs"
-                        aria-label="Clear search"
-                        icon={<FaTimes />}
-                        variant="ghost"
-                        onClick={() => setSearchTerm("")}
-                      />
-                    ) : (
-                      <Icon as={FaSearch} color="gray.400" />
-                    )}
-                  </InputRightElement>
-                </InputGroup>
+                </HStack>
+              </Flex>
 
-                {/* 1. Approved Coverage vs Coverage Pending */}
+              {/* Row 2: 6 Granular Filter Dropdowns Grid */}
+              <SimpleGrid columns={{ base: 1, sm: 2, md: 3, xl: 6 }} spacing={2.5} w="100%">
+                {/* 1. Bank Verification Filter */}
                 <Select
                   size="sm"
-                  maxW={{ base: "100%", sm: "205px" }}
+                  h="34px"
+                  w="100%"
+                  minW="0"
+                  fontSize="xs"
+                  textOverflow="ellipsis"
+                  whiteSpace="nowrap"
+                  overflow="hidden"
+                  cursor="pointer"
+                  pr="28px"
+                  value={bankFilter}
+                  onChange={(e) => {
+                    setBankFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  borderRadius="8px"
+                  borderColor={bankFilter !== "all" ? customColor : `${customColor}50`}
+                  bg={bankFilter !== "all" ? `${customColor}12` : "white"}
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  fontWeight={bankFilter !== "all" ? "bold" : "normal"}
+                  color={bankFilter !== "all" ? customColor : "gray.700"}
+                  title={bankFilter !== "all" ? `Bank: ${bankFilter}` : "Filter by Bank Verification"}
+                >
+                  <option value="all">🏦 Bank: All</option>
+                  <option value="verified">✅ Bank Verified</option>
+                  <option value="unverified">⏳ Bank Pending</option>
+                  <option value="rejected">❌ Bank Rejected</option>
+                </Select>
+
+                {/* 2. KYC Status Filter */}
+                <Select
+                  size="sm"
+                  h="34px"
+                  w="100%"
+                  minW="0"
+                  fontSize="xs"
+                  textOverflow="ellipsis"
+                  whiteSpace="nowrap"
+                  overflow="hidden"
+                  cursor="pointer"
+                  pr="28px"
+                  value={kycFilter}
+                  onChange={(e) => {
+                    setKycFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  borderRadius="8px"
+                  borderColor={kycFilter !== "all" ? customColor : `${customColor}50`}
+                  bg={kycFilter !== "all" ? `${customColor}12` : "white"}
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  fontWeight={kycFilter !== "all" ? "bold" : "normal"}
+                  color={kycFilter !== "all" ? customColor : "gray.700"}
+                  title={kycFilter !== "all" ? `KYC: ${kycFilter}` : "Filter by KYC Verification"}
+                >
+                  <option value="all">🪪 KYC: All</option>
+                  <option value="verified">✅ KYC Verified</option>
+                  <option value="pending">⏳ KYC Pending</option>
+                  <option value="rejected">❌ KYC Rejected</option>
+                </Select>
+
+                {/* 3. Training Status Filter */}
+                <Select
+                  size="sm"
+                  h="34px"
+                  w="100%"
+                  minW="0"
+                  fontSize="xs"
+                  textOverflow="ellipsis"
+                  whiteSpace="nowrap"
+                  overflow="hidden"
+                  cursor="pointer"
+                  pr="28px"
+                  value={trainingFilter}
+                  onChange={(e) => {
+                    setTrainingFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  borderRadius="8px"
+                  borderColor={trainingFilter !== "all" ? customColor : `${customColor}50`}
+                  bg={trainingFilter !== "all" ? `${customColor}12` : "white"}
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  fontWeight={trainingFilter !== "all" ? "bold" : "normal"}
+                  color={trainingFilter !== "all" ? customColor : "gray.700"}
+                  title={trainingFilter !== "all" ? `Training: ${trainingFilter}` : "Filter by Gate 1 Training"}
+                >
+                  <option value="all">🎓 Training: All</option>
+                  <option value="completed">✅ Completed</option>
+                  <option value="pending">⏳ Pending</option>
+                </Select>
+
+                {/* 4. Work Status Filter */}
+                <Select
+                  size="sm"
+                  h="34px"
+                  w="100%"
+                  minW="0"
+                  fontSize="xs"
+                  textOverflow="ellipsis"
+                  whiteSpace="nowrap"
+                  overflow="hidden"
+                  cursor="pointer"
+                  pr="28px"
+                  value={workStatusFilter}
+                  onChange={(e) => {
+                    setWorkStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  borderRadius="8px"
+                  borderColor={workStatusFilter !== "all" ? customColor : `${customColor}50`}
+                  bg={workStatusFilter !== "all" ? `${customColor}12` : "white"}
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  fontWeight={workStatusFilter !== "all" ? "bold" : "normal"}
+                  color={workStatusFilter !== "all" ? customColor : "gray.700"}
+                  title={workStatusFilter !== "all" ? `Work Status: ${workStatusFilter}` : "Filter by Work Status"}
+                >
+                  <option value="all">⚡ Work: All</option>
+                  <option value="approved">✅ Approved</option>
+                  <option value="pending">⏳ Pending</option>
+                  <option value="suspended">🚫 Suspended</option>
+                </Select>
+
+                {/* 5. Coverage Area Filter */}
+                <Select
+                  size="sm"
+                  h="34px"
+                  w="100%"
+                  minW="0"
+                  fontSize="xs"
+                  textOverflow="ellipsis"
+                  whiteSpace="nowrap"
+                  overflow="hidden"
+                  cursor="pointer"
+                  pr="28px"
                   value={districtCategory}
                   onChange={(e) => {
                     setDistrictCategory(e.target.value);
@@ -1688,20 +1912,28 @@ function AdminManagement() {
                   borderRadius="8px"
                   borderColor={districtCategory !== "all" ? customColor : `${customColor}50`}
                   bg={districtCategory !== "all" ? `${customColor}12` : "white"}
-                  _focus={{ borderColor: customColor }}
-                  fontWeight="bold"
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  fontWeight={districtCategory !== "all" ? "bold" : "normal"}
                   color={districtCategory !== "all" ? customColor : "gray.700"}
-                  title="Filter by approved coverage or coverage pending"
+                  title={districtCategory !== "all" ? `Coverage: ${districtCategory}` : "Filter by Coverage Area"}
                 >
-                  <option value="all">📍 Coverage: All Technicians</option>
-                  <option value="created">✅ Approved Coverage ({createdDistrictTechCount})</option>
-                  <option value="non_created">⚠️ Coverage Pending ({nonCreatedDistrictTechCount})</option>
+                  <option value="all">📍 Coverage: All</option>
+                  <option value="created">✅ Approved ({createdDistrictTechCount})</option>
+                  <option value="non_created">⚠️ Pending ({nonCreatedDistrictTechCount})</option>
                 </Select>
 
-                {/* 2. Specific District-Wise Filter */}
+                {/* 6. District-Wise Technicians Filter */}
                 <Select
                   size="sm"
-                  maxW={{ base: "100%", sm: "215px" }}
+                  h="34px"
+                  w="100%"
+                  minW="0"
+                  fontSize="xs"
+                  textOverflow="ellipsis"
+                  whiteSpace="nowrap"
+                  overflow="hidden"
+                  cursor="pointer"
+                  pr="28px"
                   value={districtFilter}
                   onChange={(e) => {
                     setDistrictFilter(e.target.value);
@@ -1710,111 +1942,22 @@ function AdminManagement() {
                   borderRadius="8px"
                   borderColor={districtFilter !== "all" ? customColor : `${customColor}50`}
                   bg={districtFilter !== "all" ? `${customColor}12` : "white"}
-                  _focus={{ borderColor: customColor }}
-                  fontWeight="bold"
+                  _focus={{ borderColor: customColor, boxShadow: `0 0 0 1px ${customColor}` }}
+                  fontWeight={districtFilter !== "all" ? "bold" : "normal"}
                   color={districtFilter !== "all" ? customColor : "gray.700"}
+                  title={districtFilter !== "all" ? `District: ${districtFilter}` : "Filter by Specific District"}
                 >
-                  {districtCategory === "created" ? (
-                    <>
-                      <option value="all">📍 All Approved Districts ({createdDistrictTechCount})</option>
-                      {createdDistrictsList.map((d) => (
-                        <option key={d.id || d.name} value={d.name}>
-                          📍 {d.name} {d.count > 0 ? `(${d.count})` : ""}
-                        </option>
-                      ))}
-                    </>
-                  ) : districtCategory === "non_created" ? (
-                    <>
-                      <option value="all">⚠️ All Coverage Pending ({nonCreatedDistrictTechCount})</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="all">📍 Coverage: All Technicians</option>
-                      <option value="__created_all__">✅ Approved Coverage ({createdDistrictTechCount})</option>
-                      <option value="__non_created_all__">⚠️ Coverage Pending ({nonCreatedDistrictTechCount})</option>
-                      {createdDistrictsList.length > 0 && (
-                        <optgroup label="── ✅ Approved Districts ──">
-                          {createdDistrictsList.map((d) => (
-                            <option key={`c-${d.id || d.name}`} value={d.name}>
-                              📍 {d.name} {d.count > 0 ? `(${d.count})` : ""}
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-                    </>
-                  )}
+                  <option value="all">🏙️ District: All</option>
+                  {createdDistrictsList.map((d) => {
+                    const cleanName = (d.name || "").replace(/\s+Operational\s+Range$/i, "");
+                    return (
+                      <option key={d.id || d.name} value={d.name} title={d.name}>
+                        📍 {cleanName} {d.count > 0 ? `(${d.count})` : ""}
+                      </option>
+                    );
+                  })}
                 </Select>
-
-                {/* Dropdown Filter for Verified / Unverified */}
-                <Select
-                  size="sm"
-                  maxW={{ base: "100%", sm: "190px" }}
-                  value={subFilter}
-                  onChange={(e) => {
-                    setSubFilter(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  borderRadius="8px"
-                  borderColor={`${customColor}50`}
-                  _focus={{ borderColor: customColor }}
-                  fontWeight="medium"
-                  color="gray.700"
-                >
-                  <option value="all">Filter: All Statuses</option>
-                  <option value="verified">Verified / Approved</option>
-                  <option value="unverified">Unverified / Pending</option>
-                  {activeTab === "KYCVerification" && <option value="rejected">Rejected KYC</option>}
-                  {activeTab === "NewTechnician" && (
-                    <>
-                      <option value="trainingPending">Training Pending</option>
-                      <option value="trainingCompleted">Training Completed</option>
-                    </>
-                  )}
-                  {activeTab === "Active" && (
-                    <>
-                      <option value="onlineNow">Online Now</option>
-                      <option value="suspendedStatus">Suspended</option>
-                    </>
-                  )}
-                </Select>
-
-                {/* Show All / Reset Button */}
-                {(activeTab !== "all" ||
-                  subFilter !== "all" ||
-                  districtCategory !== "all" ||
-                  districtFilter !== "all" ||
-                  searchTerm !== "") && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    color={customColor}
-                    borderColor={customColor}
-                    _hover={{ bg: customColor, color: "white" }}
-                    _active={{ bg: "#004d4d", color: "white" }}
-                    onClick={() => {
-                      setActiveTab("all");
-                      setSubFilter("all");
-                      setDistrictCategory("all");
-                      setDistrictFilter("all");
-                      setSearchTerm("");
-                      setCurrentPage(1);
-                    }}
-                  >
-                    Reset Filters
-                  </Button>
-                )}
-
-                <RefreshButton
-                  iconOnly
-                  isLoading={loading}
-                  onClick={fetchData}
-                  aria-label="Refresh technicians and verifications"
-                  color={customColor}
-                  borderColor={`${customColor}50`}
-                  _hover={{ bg: `${customColor}10`, borderColor: customColor }}
-                  _active={{ bg: `${customColor}20`, borderColor: customColor }}
-                />
-              </Flex>
+              </SimpleGrid>
             </Flex>
           </CardHeader>
 
@@ -1834,22 +1977,24 @@ function AdminManagement() {
               keyExtractor={(tech) => tech._id}
               rows={currentItems}
               isLoading={tableLoading}
+              onRowClick={(tech) => {
+                setSelectedTechnician(tech);
+                setIsDetailsModalOpen(true);
+              }}
               emptyIcon={FaSearch}
               emptyTitle="No technicians match the selected filters"
-              emptyDescription="Try clearing the search query or switching to All Technicians."
+              emptyDescription="Try clearing the search query or resetting filters."
               emptyAction={
-                <Button
-                  size="sm"
-                  mt={4}
-                  colorScheme="teal"
-                  onClick={() => {
-                    setActiveTab("all");
-                    setSubFilter("all");
-                    setSearchTerm("");
-                  }}
-                >
-                  Reset Filters
-                </Button>
+                hasActiveFilters ? (
+                  <Button
+                    size="sm"
+                    mt={4}
+                    colorScheme="teal"
+                    onClick={handleResetFilters}
+                  >
+                    Reset All Filters
+                  </Button>
+                ) : undefined
               }
               pagination={
                 tableLoading || currentItems.length === 0
@@ -1866,6 +2011,7 @@ function AdminManagement() {
                       label: "technicians",
                     }
               }
+              onRowClick={(tech) => handleOpenTechnicianDrawer(tech, 0)}
               columns={[
                 {
                   key: "technicianProfile",
@@ -1875,10 +2021,7 @@ function AdminManagement() {
                     <Flex
                       align="center"
                       cursor="pointer"
-                      onClick={() => {
-                        setSelectedTechnician(tech);
-                        setIsDetailsModalOpen(true);
-                      }}
+                      onClick={() => handleOpenTechnicianDrawer(tech, 0)}
                     >
                       <Avatar
                         size="sm"
@@ -1911,21 +2054,6 @@ function AdminManagement() {
                   ),
                 },
                 {
-                  key: "skill",
-                  label: "Skill / Experience",
-                  minWidth: "140px",
-                  cell: (tech) => (
-                    <Box>
-                      <Text fontSize="xs" fontWeight="semibold" color="gray.700" isTruncated maxW="140px">
-                        {getTechnicianSpecialization(tech)}
-                      </Text>
-                      <Text fontSize="xs" color="gray.500">
-                        {tech.experienceYears || tech.profile?.experienceYears || "0"} Years Exp
-                      </Text>
-                    </Box>
-                  ),
-                },
-                {
                   key: "district",
                   label: "Approved Coverage",
                   minWidth: "170px",
@@ -1950,44 +2078,56 @@ function AdminManagement() {
 
                     return (
                       <Box>
-                        <HStack spacing={1} flexWrap="wrap">
-                          {approved.slice(0, 2).map((district) => (
-                            <Badge
-                              key={district.id}
-                              colorScheme="teal"
-                              px={2.5}
-                              py={1}
-                              borderRadius="md"
-                              textTransform="capitalize"
-                              fontWeight="bold"
-                              fontSize="2xs"
-                              title="Explicit Admin/Owner approved coverage"
-                            >
-                              📍 {district.name}
-                            </Badge>
-                          ))}
+                        <VStack align="flex-start" spacing={1.5} w="100%">
+                          {approved.slice(0, 2).map((district) => {
+                            const cleanName = (district.name || "").replace(/\s+Operational\s+Range$/i, "");
+                            return (
+                              <Badge
+                                key={district.id}
+                                colorScheme="teal"
+                                px={2.5}
+                                py={1}
+                                borderRadius="md"
+                                textTransform="capitalize"
+                                fontWeight="bold"
+                                fontSize="2xs"
+                                title={`Approved Coverage: ${district.name}`}
+                                display="inline-flex"
+                                alignItems="center"
+                                gap={1.5}
+                                maxW="100%"
+                                m="0 !important"
+                                alignSelf="flex-start"
+                                lineHeight="normal"
+                              >
+                                <Text as="span" flexShrink={0}>📍</Text>
+                                <Text as="span" isTruncated maxW="160px">
+                                  {cleanName || district.name}
+                                </Text>
+                              </Badge>
+                            );
+                          })}
                           {approved.length > 2 && (
-                            <Badge colorScheme="teal" variant="subtle" fontSize="2xs" px={2} py={1}>
-                              +{approved.length - 2}
+                            <Badge
+                              colorScheme="teal"
+                              variant="subtle"
+                              fontSize="2xs"
+                              px={2}
+                              py={0.5}
+                              borderRadius="md"
+                              m="0 !important"
+                              alignSelf="flex-start"
+                            >
+                              +{approved.length - 2} more
                             </Badge>
                           )}
-                        </HStack>
-                        <Text fontSize="2xs" color="gray.500" mt={1}>
-                          Admin/Owner approved
-                        </Text>
+                          <Text fontSize="2xs" color="gray.500" mt={0.5} m="0 !important">
+                            Admin/Owner approved
+                          </Text>
+                        </VStack>
                       </Box>
                     );
                   },
-                },
-                {
-                  key: "city",
-                  label: "Registration City",
-                  minWidth: "110px",
-                  cell: (tech) => (
-                    <Text fontSize="xs" color="gray.700" fontWeight="medium" textTransform="capitalize">
-                      {tech.city || tech.profile?.city || tech.locality || "N/A"}
-                    </Text>
-                  ),
                 },
                 {
                   key: "training",
@@ -2000,25 +2140,23 @@ function AdminManagement() {
                         colorScheme={tech.trainingCompleted ? "green" : "orange"}
                         label={tech.trainingCompleted ? "Completed" : "Pending"}
                         variant={tech.trainingCompleted ? "subtle" : "solid"}
+                        cursor="pointer"
+                        onClick={() => handleOpenTechnicianDrawer(tech, 0)}
                       />
-                      <Tooltip
-                        label={
-                          tech.trainingCompleted
-                            ? "Mark training incomplete"
-                            : "Approve Gate 1 training completion"
-                        }
-                      >
-                        <IconButton
-                          size="xs"
-                          h="26px"
-                          w="26px"
-                          aria-label="Toggle training"
-                          icon={<FaUserGraduate />}
-                          colorScheme={tech.trainingCompleted ? "gray" : "teal"}
-                          variant={tech.trainingCompleted ? "ghost" : "solid"}
-                          onClick={() => handleToggleTraining(tech, !tech.trainingCompleted)}
-                        />
-                      </Tooltip>
+                      {!tech.trainingCompleted && (
+                        <Tooltip label="Approve Gate 1 training completion">
+                          <IconButton
+                            size="xs"
+                            h="26px"
+                            w="26px"
+                            aria-label="Approve Gate 1 Training"
+                            icon={<FaUserGraduate />}
+                            colorScheme="teal"
+                            variant="solid"
+                            onClick={() => handleToggleTraining(tech, true)}
+                          />
+                        </Tooltip>
+                      )}
                     </Flex>
                   ),
                 },
@@ -2057,7 +2195,7 @@ function AdminManagement() {
                           }
                           variant={isKycVer ? "subtle" : "solid"}
                           cursor="pointer"
-                          onClick={() => handleOpenKYCModal(tech)}
+                          onClick={() => handleOpenTechnicianDrawer(tech, 1)}
                         />
                       </Flex>
                     );
@@ -2084,9 +2222,51 @@ function AdminManagement() {
                           }
                           variant={isBankVer ? "subtle" : "solid"}
                           cursor="pointer"
-                          onClick={() => handleOpenBankModal(tech)}
+                          onClick={() => handleOpenTechnicianDrawer(tech, 2)}
                         />
                       </Flex>
+                    );
+                  },
+                },
+                {
+                  key: "walletBalance",
+                  label: "Wallet & Balance",
+                  align: "center",
+                  minWidth: "140px",
+                  cell: (tech) => {
+                    const balancePaise = tech.availableBalancePaise != null ? Number(tech.availableBalancePaise) : ((Number(tech.walletBalance) || 0) * 100);
+                    const formatted = `₹${(balancePaise / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    const hasDues = (Number(tech.outstandingDuesPaise) || 0) > 0;
+                    const isFrozen = tech.payoutBlocked === true;
+
+                    return (
+                      <VStack spacing={0.5} align="center" cursor="pointer" onClick={() => handleOpenTechnicianDrawer(tech, 2)}>
+                        <HStack spacing={1}>
+                          <Text
+                            fontSize="sm"
+                            fontWeight="bold"
+                            color={balancePaise > 0 ? "teal.700" : "gray.600"}
+                          >
+                            {formatted}
+                          </Text>
+                          {isFrozen && (
+                            <Tooltip label={`Payouts Frozen: ${tech.payoutBlockedReason || "Administrative hold"}`}>
+                              <Badge colorScheme="red" variant="solid" fontSize="3xs" px={1} borderRadius="sm">
+                                🔒
+                              </Badge>
+                            </Tooltip>
+                          )}
+                        </HStack>
+                        {hasDues ? (
+                          <Badge colorScheme="orange" fontSize="3xs" px={1.5} borderRadius="full">
+                            Dues: ₹{(tech.outstandingDuesPaise / 100).toFixed(0)}
+                          </Badge>
+                        ) : (
+                          <Text fontSize="3xs" color="gray.400">
+                            Available
+                          </Text>
+                        )}
+                      </VStack>
                     );
                   },
                 },
@@ -2119,53 +2299,40 @@ function AdminManagement() {
                   key: "actions",
                   label: "Actions",
                   align: "right",
-                  minWidth: "170px",
+                  minWidth: "115px",
                   thProps: { pr: 6 },
-                  cell: (tech) => (
-                    <HStack spacing={1.5} justify="flex-end" align="center">
-                      <Tooltip label="View Full Profile & KYC">
-                        <IconButton
-                          size="xs"
-                          h="28px"
-                          w="28px"
-                          aria-label="View Details"
-                          icon={<FaEye />}
-                          variant="outline"
-                          colorScheme="teal"
-                          onClick={() => {
-                            setSelectedTechnician(tech);
-                            setIsDetailsModalOpen(true);
-                          }}
-                        />
-                      </Tooltip>
+                  cell: (tech) => {
+                    const balancePaise = tech.availableBalancePaise != null ? Number(tech.availableBalancePaise) : ((Number(tech.walletBalance) || 0) * 100);
+                    const hasActiveBalance = balancePaise > 0 || (Number(tech.reservedBalancePaise) || 0) > 0 || (Number(tech.outstandingDuesPaise) || 0) > 0;
 
-                      <Tooltip label="Review KYC Documents">
-                        <IconButton
-                          size="xs"
-                          h="28px"
-                          w="28px"
-                          aria-label="Review KYC"
-                          icon={<FaIdCard />}
-                          variant="outline"
-                          colorScheme="purple"
-                          onClick={() => handleOpenKYCModal(tech)}
-                        />
-                      </Tooltip>
+                    return (
+                      <HStack spacing={1} justify="flex-end" align="center">
+                        <Tooltip label="View Full Profile & Governance">
+                          <IconButton
+                            size="xs"
+                            h="28px"
+                            w="28px"
+                            aria-label="View Details"
+                            icon={<FaEye />}
+                            variant="outline"
+                            colorScheme="teal"
+                            onClick={() => handleOpenTechnicianDrawer(tech, 0)}
+                          />
+                        </Tooltip>
 
-                      <Tooltip label="Review Bank Payouts">
-                        <IconButton
-                          size="xs"
-                          h="28px"
-                          w="28px"
-                          aria-label="Review Bank"
-                          icon={<FaUniversity />}
-                          variant="outline"
-                          colorScheme="orange"
-                          onClick={() => handleOpenBankModal(tech)}
-                        />
-                      </Tooltip>
+                        <Tooltip label="View Wallet & Financials">
+                          <IconButton
+                            size="xs"
+                            h="28px"
+                            w="28px"
+                            aria-label="View Wallet"
+                            icon={<FaWallet />}
+                            variant="ghost"
+                            colorScheme="purple"
+                            onClick={() => handleOpenTechnicianDrawer(tech, 2)}
+                          />
+                        </Tooltip>
 
-                      {isOwner && (
                         <Menu>
                           <MenuButton
                             as={IconButton}
@@ -2178,39 +2345,86 @@ function AdminManagement() {
                           />
                           <MenuList fontSize="sm">
                             <MenuItem
-                              icon={<FaCheck color="green" />}
-                              onClick={() => handleUpdateWorkStatus(tech, "approved")}
+                              icon={<FaEye color="teal" />}
+                              onClick={() => handleOpenTechnicianDrawer(tech, 0)}
                             >
-                              Set Status: Approved
+                              View Profile & Governance
                             </MenuItem>
                             <MenuItem
-                              icon={<MdOutlinePending color="orange" />}
-                              onClick={() => handleUpdateWorkStatus(tech, "pending")}
+                              icon={<FaWallet color="purple" />}
+                              onClick={() => handleOpenTechnicianDrawer(tech, 2)}
                             >
-                              Set Status: Pending
+                              View Financials & Payouts
                             </MenuItem>
-                            <MenuItem
-                              icon={<FaUserSlash color="red" />}
-                              onClick={() => handleUpdateWorkStatus(tech, "suspended")}
-                            >
-                              Set Status: Suspended
-                            </MenuItem>
-                            <Divider />
-                            <MenuItem
-                              icon={<FaTrash color="red" />}
-                              color="red.600"
-                              onClick={() => {
-                                setAdminToDelete(tech);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                            >
-                              Delete Technician
-                            </MenuItem>
+                            {isOwner && (
+                              <>
+                                <MenuItem
+                                  icon={<FaMoneyBillWave color="green" />}
+                                  onClick={() => navigate("/owner/technician-payouts")}
+                                >
+                                  Go to Payouts Console
+                                </MenuItem>
+                                <MenuItem
+                                  icon={tech.payoutBlocked ? <FaUnlock color="green" /> : <FaLock color="orange" />}
+                                  onClick={() => handleTogglePayoutFreeze(tech)}
+                                >
+                                  {tech.payoutBlocked ? "Unfreeze Payouts" : "Freeze Payouts (Hold)"}
+                                </MenuItem>
+                                <Divider />
+                                <MenuItem
+                                  icon={<FaCheck color="green" />}
+                                  onClick={() => handleUpdateWorkStatus(tech, "approved")}
+                                >
+                                  Set Status: Approved
+                                </MenuItem>
+                                <MenuItem
+                                  icon={<MdOutlinePending color="orange" />}
+                                  onClick={() => handleUpdateWorkStatus(tech, "pending")}
+                                >
+                                  Set Status: Pending
+                                </MenuItem>
+                                <MenuItem
+                                  icon={<FaUserSlash color="red" />}
+                                  onClick={() => handleUpdateWorkStatus(tech, "suspended")}
+                                >
+                                  Set Status: Suspended
+                                </MenuItem>
+                                <Divider />
+                                <Tooltip
+                                  isDisabled={!hasActiveBalance}
+                                  label={`Cannot delete: Technician has active wallet balance (₹${(balancePaise / 100).toFixed(2)})`}
+                                >
+                                  <Box>
+                                    <MenuItem
+                                      icon={<FaTrash color="red" />}
+                                      color="red.600"
+                                      isDisabled={hasActiveBalance}
+                                      onClick={() => {
+                                        if (hasActiveBalance) {
+                                          toast({
+                                            title: "Deletion Blocked",
+                                            description: `Cannot delete technician with active wallet balance of ₹${(balancePaise / 100).toFixed(2)}. Settle all funds first.`,
+                                            status: "error",
+                                            duration: 4000,
+                                            isClosable: true,
+                                          });
+                                          return;
+                                        }
+                                        setAdminToDelete(tech);
+                                        setIsDeleteDialogOpen(true);
+                                      }}
+                                    >
+                                      Delete Technician
+                                    </MenuItem>
+                                  </Box>
+                                </Tooltip>
+                              </>
+                            )}
                           </MenuList>
                         </Menu>
-                      )}
-                    </HStack>
-                  ),
+                      </HStack>
+                    );
+                  },
                 },
               ]}
             />
@@ -2251,9 +2465,9 @@ function AdminManagement() {
           {orphanedOpen && (
             <CardBody pt={0}>
               {orphanedLoading ? (
-                <Flex justify="center" py={6}>
-                  <Spinner size="md" color={customColor} />
-                </Flex>
+                <Box py={4}>
+                  <TableSkeleton rows={3} columns={4} />
+                </Box>
               ) : orphanedKyc.length === 0 ? (
                 <Text fontSize="sm" color="gray.500" py={4} textAlign="center">
                   No orphaned KYC records. Storage is clean.
@@ -2297,80 +2511,16 @@ function AdminManagement() {
         </Card>
       </Box>
 
-      {/* KYC IDENTITY REVIEW & EDIT MODAL */}
-      <KYCReviewModal
-        isOpen={isKYCModalOpen}
-        onClose={() => setIsKYCModalOpen(false)}
-        selectedTechForKYC={selectedTechForKYC}
-        allKycRecords={allKycRecords}
-        kycData={kycData}
-        kycLoading={kycLoading}
-        isUnmaskedPII={isUnmaskedPII}
-        onToggleUnmaskedPII={handleToggleUnmaskedPII}
-        onOpenEditKYC={handleOpenEditKYC}
-        onDeleteKYC={() => {
-          setKycDeleteError(null);
-          setIsKycDeleteConfirmOpen(true);
-        }}
-        showRejectionInput={showRejectionInput}
-        setShowRejectionInput={setShowRejectionInput}
-        rejectionInput={rejectionInput}
-        setRejectionInput={setRejectionInput}
-        onVerifyKYCAction={handleVerifyKYCAction}
-        isTechnicianKYCVerified={isTechnicianKYCVerified}
-        getTechnicianName={getTechnicianName}
-        getImageUrl={getImageUrl}
-        customColor={customColor}
-      />
-
-      {/* EDIT KYC NUMBERS MODAL */}
-      <EditKYCModal
-        isOpen={isEditKYCOpen}
-        onClose={() => setIsEditKYCOpen(false)}
-        kycEditForm={kycEditForm}
-        setKycEditForm={setKycEditForm}
-        onSave={handleSaveKYCEdit}
-        isLoading={savingKycEdit}
-      />
-
-      {/* BANK & PAYOUT DETAILS MODAL */}
-      <BankDetailsModal
-        isOpen={isBankModalOpen}
-        onClose={() => setIsBankModalOpen(false)}
-        selectedTechForBank={selectedTechForBank}
-        allKycRecords={allKycRecords}
-        onOpenEditBank={() => setIsEditBankOpen(true)}
-        showBankRejection={showBankRejection}
-        setShowBankRejection={setShowBankRejection}
-        bankRejectionReason={bankRejectionReason}
-        setBankRejectionReason={setBankRejectionReason}
-        onVerifyBankAction={handleVerifyBankAction}
-        loading={loading}
-        isTechnicianBankVerified={isTechnicianBankVerified}
-        findKYCRecord={findKYCRecord}
-        getTechnicianName={getTechnicianName}
-      />
-
-      {/* EDIT BANK DETAILS MODAL */}
-      <EditBankModal
-        isOpen={isEditBankOpen}
-        onClose={() => setIsEditBankOpen(false)}
-        bankEditForm={bankEditForm}
-        setBankEditForm={setBankEditForm}
-        onSave={handleSaveBankEdit}
-        isLoading={savingBankEdit}
-      />
-
-      {/* TECHNICIAN FULL PROFILE DETAILS MODAL */}
-      <AdminDetailsModal
+      {/* TECHNICIAN 360° PROFILE & ALL-IN-ONE VERIFICATION SLIDE-OVER DRAWER */}
+      <TechnicianDetailsDrawer
         isOpen={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
         selectedTechnician={selectedTechnician}
+        setSelectedTechnician={setSelectedTechnician}
+        initialTab={drawerInitialTab}
         allKycRecords={allKycRecords}
-        onToggleTraining={handleToggleTraining}
-        onOpenKYCModal={handleOpenKYCModal}
-        onOpenBankModal={handleOpenBankModal}
-        loading={loading}
+        masterDistricts={masterDistricts}
+        isOwner={isOwner}
         customColor={customColor}
         getTechnicianName={getTechnicianName}
         getTechnicianImage={getTechnicianImage}
@@ -2383,6 +2533,8 @@ function AdminManagement() {
         getTechnicianApprovedDistricts={(tech) => getTechnicianApprovedDistricts(tech, masterDistricts)}
         getTechnicianAddress={getTechnicianAddress}
         getTechnicianSpecialization={getTechnicianSpecialization}
+        getImageUrl={getImageUrl}
+        onDataChanged={fetchData}
       />
 
       <ConfirmActionModal
@@ -2411,6 +2563,27 @@ function AdminManagement() {
         getTechnicianName={getTechnicianName}
         onConfirmDelete={handleDeleteConfirm}
         isDeleting={isDeleting}
+      />
+
+      {/* WORK STATUS PREREQUISITES MODAL */}
+      <WorkStatusPrerequisitesModal
+        isOpen={isWorkStatusPrereqModalOpen}
+        onClose={() => setIsWorkStatusPrereqModalOpen(false)}
+        technician={workStatusPrereqTech}
+        technicianName={workStatusPrereqTech ? getTechnicianName(workStatusPrereqTech, allKycRecords) : undefined}
+        technicianPhone={workStatusPrereqTech ? getTechnicianPhone(workStatusPrereqTech, allKycRecords) : undefined}
+        technicianImage={workStatusPrereqTech ? getTechnicianImage(workStatusPrereqTech, allKycRecords) : undefined}
+        technicianSpecialization={workStatusPrereqTech ? getTechnicianSpecialization(workStatusPrereqTech) : undefined}
+        evaluation={workStatusPrereqEvaluation}
+        onCompleteTraining={workStatusPrereqTech ? () => handleToggleTraining(workStatusPrereqTech) : undefined}
+        onOpenDrawerTab={(tabKey) => {
+          setIsWorkStatusPrereqModalOpen(false);
+          if (workStatusPrereqTech) {
+            setSelectedTechnician(workStatusPrereqTech);
+            setIsDetailsModalOpen(true);
+          }
+        }}
+        onApproveWorkStatus={workStatusPrereqTech ? () => handleUpdateWorkStatus(workStatusPrereqTech, "approved") : undefined}
       />
     </Flex>
   );

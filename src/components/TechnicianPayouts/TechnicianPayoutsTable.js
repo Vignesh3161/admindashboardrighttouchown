@@ -285,6 +285,8 @@ export default function TechnicianPayoutsTable({
               return (
                 <Tr
                   key={id}
+                  onClick={() => onViewDetails && onViewDetails(item)}
+                  cursor="pointer"
                   _hover={{ bg: isDark ? "gray.800" : "teal.50", transition: "background 0.15s ease" }}
                   transition="background 0.15s ease"
                 >
@@ -391,6 +393,7 @@ export default function TechnicianPayoutsTable({
                                   variant="ghost"
                                   boxSize="14px"
                                   minW="14px"
+                                  aria-label="Copy phone number"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     copyToClipboard(techPhone, "Mobile Number");
@@ -461,6 +464,7 @@ export default function TechnicianPayoutsTable({
                               variant="ghost"
                               boxSize="14px"
                               minW="14px"
+                              aria-label="Copy account number"
                               onClick={() => copyToClipboard(rawAcc, "Account Number")}
                             />
                           </Tooltip>

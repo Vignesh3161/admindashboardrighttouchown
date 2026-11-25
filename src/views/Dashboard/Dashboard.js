@@ -6,6 +6,8 @@ import {
   SimpleGrid,
   Stack,
   Text,
+  HStack,
+  Button,
 } from "@chakra-ui/react";
 import {
   FaBoxOpen,
@@ -66,6 +68,15 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(!hasExistingData);
   const [insights, setInsights] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [timeframe, setTimeframe] = useState("all");
+
+  const TIMEFRAME_OPTIONS = [
+    { label: "Today", value: "today" },
+    { label: "7D", value: "7d" },
+    { label: "30D", value: "30d" },
+    { label: "90D", value: "90d" },
+    { label: "All", value: "all" },
+  ];
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -201,6 +212,15 @@ export default function Dashboard() {
     });
   }, [serviceBookings, productBookings, insights]);
 
+  const displayedTrend = useMemo(() => {
+    if (!monthlyTrend || monthlyTrend.length === 0) return [];
+    if (timeframe === "today") return monthlyTrend.slice(-1);
+    if (timeframe === "7d") return monthlyTrend.slice(-1);
+    if (timeframe === "30d") return monthlyTrend.slice(-2);
+    if (timeframe === "90d") return monthlyTrend.slice(-3);
+    return monthlyTrend;
+  }, [monthlyTrend, timeframe]);
+
   const kpiData = useMemo(() => {
     const apiServiceRevenue = insights?.finance?.revenue || 0;
     const apiProductRevenue = insights?.product?.revenue || 0;
@@ -306,29 +326,95 @@ export default function Dashboard() {
 
   return (
     <Box
-      pt={{ base: "120px", md: "75px" }}
+      pt={0}
       pb={{ base: 6, md: 8 }}
-      px={{ base: 2, md: 4, lg: 6 }}
+      px={0}
     >
       <Stack spacing={{ base: 5, md: 6 }} maxW="1600px" mx="auto">
         <Flex
           justify="space-between"
-          align="center"
-          flexWrap="wrap"
+          align={{ base: "flex-start", md: "center" }}
+          direction={{ base: "column", md: "row" }}
           gap={3}
-          mb={1}
+          position={{ base: "static", md: "sticky" }}
+          top={{ base: "0", md: "64px" }}
+          zIndex="900"
+          bg="gray.50"
+          pt={{ base: 1, md: 2 }}
+          pb={{ base: 2, md: 3 }}
         >
           <Box>
-            <Heading size="md" color={textColor} fontWeight="700">
-              {isOwner ? "Dashboard Overview" : "Operations Overview"}
-            </Heading>
+            <HStack spacing={2.5} align="center">
+              <Heading size="md" color={textColor} fontWeight="800" letterSpacing="-0.02em">
+                {isOwner ? "Dashboard Overview" : "Operations Overview"}
+              </Heading>
+              <HStack
+                spacing={1.5}
+                px={2}
+                py={0.5}
+                borderRadius="full"
+                bg="teal.50"
+                border="1px solid"
+                borderColor="teal.200"
+              >
+                <Box boxSize="6px" borderRadius="full" bg="#10B981" />
+                <Text fontSize="2xs" fontWeight="700" color="#0F766E">
+                  Live
+                </Text>
+              </HStack>
+            </HStack>
+            <Text fontSize="xs" color={subTextColor} mt={0.5}>
+              Live dispatch metrics, real-time demand, and revenue health
+            </Text>
           </Box>
-          <RefreshButton
-            isLoading={isRefreshing}
-            onClick={handleRefresh}
-            label="Refresh"
-            aria-label="Refresh dashboard"
-          />
+
+          <HStack spacing={2.5} align="center" wrap="wrap">
+            {/* Timeframe Segmented Control (Wider, Spacious, Modern) */}
+            <HStack
+              bg="gray.100"
+              p={1}
+              borderRadius="10px"
+              spacing={1}
+              border="1px solid"
+              borderColor="gray.200"
+              boxShadow="xs"
+            >
+              {TIMEFRAME_OPTIONS.map((opt) => (
+                <Button
+                  key={opt.value}
+                  size="xs"
+                  h="30px"
+                  px={{ base: 3, md: 4 }}
+                  minW={{ base: "48px", md: "52px" }}
+                  borderRadius="8px"
+                  variant="unstyled"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  bg={timeframe === opt.value ? "white" : "transparent"}
+                  color={timeframe === opt.value ? "#0F766E" : "gray.600"}
+                  fontWeight={timeframe === opt.value ? "800" : "600"}
+                  fontSize="xs"
+                  boxShadow={timeframe === opt.value ? "0 2px 6px rgba(0, 0, 0, 0.08)" : "none"}
+                  onClick={() => setTimeframe(opt.value)}
+                  _hover={{
+                    color: timeframe === opt.value ? "#0F766E" : "gray.900",
+                    bg: timeframe === opt.value ? "white" : "whiteAlpha.600",
+                  }}
+                  transition="all 0.15s ease"
+                >
+                  {opt.label}
+                </Button>
+              ))}
+            </HStack>
+
+            <RefreshButton
+              isLoading={isRefreshing}
+              onClick={handleRefresh}
+              label="Refresh"
+              aria-label="Refresh dashboard"
+            />
+          </HStack>
         </Flex>
 
         {isOwner ? (
@@ -397,7 +483,7 @@ export default function Dashboard() {
               alignItems="stretch"
             >
               <RevenueTrendCard
-                months={monthlyTrend}
+                months={displayedTrend}
                 gridColumn={{ xl: "span 2" }}
               />
               <RevenueMixCard

@@ -1,23 +1,15 @@
 // Admin.js - OWNER/ADMIN ACCESS
 import {
-  Portal,
   useDisclosure,
-  Stack,
   Box,
-  Spinner,
-  Flex,
 } from "@chakra-ui/react";
-import { Image } from "@chakra-ui/react";
-import FlareLogo from "assets/img/Right_Touch.png";
 import Sidebar, { SidebarResponsive } from "components/Sidebar/Sidebar.js";
 import AdminNavbar from "components/Navbars/AdminNavbar.js";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import routes from "routes.js";
-import FixedPlugin from "components/FixedPlugin/FixedPlugin";
 import MainPanel from "components/Layout/MainPanel";
-import PanelContainer from "components/Layout/PanelContainer";
-import PanelContent from "components/Layout/PanelContent";
+import { PageSkeleton } from "components/common";
 
 import { useAppDispatch, useAppSelector } from "store/hooks";
 import {
@@ -37,26 +29,57 @@ import { useSessionRefresh } from "hooks/useSessionRefresh";
 
 export default function Dashboard(props) {
   const { ...rest } = props;
-  const [fixed] = useState(false);
   const dispatch = useAppDispatch();
-  // Canonical auth state (Phase 2): restored once from legacy storage by
-  // initializeAuth (also dispatched at entry in index.js — idempotent).
   const userRole = useAppSelector(selectRole);
   const authInitialized = useAppSelector(selectAuthInitialized);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const sessionVerified = useAppSelector(selectSessionVerified);
-  const isLoading =
-    !authInitialized || (isAuthenticated && !sessionVerified);
+  const isLoading = !authInitialized || (isAuthenticated && !sessionVerified);
   const location = useLocation();
 
-  // Phase 3: single notification refresh coordinator for privileged sessions.
-  // Owns the badge/inbox-count polling + cross-tab sync; unmounts on logout.
+  // Desktop sidebar collapse state with localStorage persistence
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("rt_admin_sidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleCollapse = useCallback(() => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("rt_admin_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  // Global Keyboard Shortcut: Ctrl+B / Cmd+B to toggle sidebar
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "b" || e.key === "B")) {
+        const tag = e.target?.tagName?.toLowerCase();
+        if (tag === "input" || tag === "textarea" || e.target?.isContentEditable) return;
+        e.preventDefault();
+        handleToggleCollapse();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleToggleCollapse]);
+
+  // Notification coordinator, websocket, and session refresh
   useNotificationCoordinator();
   useAdminSocket();
   useSessionRefresh();
 
-  const { isOpen: isSidebarOpen, onOpen: onSidebarOpen, onClose: onSidebarClose } = useDisclosure();
-  const { onOpen: onPluginOpen } = useDisclosure();
+  const {
+    isOpen: isSidebarOpen,
+    onOpen: onSidebarOpen,
+    onClose: onSidebarClose,
+  } = useDisclosure();
 
   document.documentElement.dir = "ltr";
 
@@ -66,7 +89,7 @@ export default function Dashboard(props) {
     }
   }, [authInitialized, isAuthenticated, sessionVerified, dispatch]);
 
-  const canAccessRoute = React.useCallback(
+  const canAccessRoute = useCallback(
     (route) => {
       if (!route || route.layout !== "/owner") return false;
       return canAccessRoutePolicy(userRole, route);
@@ -98,21 +121,21 @@ export default function Dashboard(props) {
     return filterRoutes(routes);
   }, [canAccessRoute, userRole]);
 
-  // Get all accessible dashboard routes for the current role.
+  // Accessible dashboard routes for the current role
   const accessibleRoutes = useMemo(() => {
     if (!isPrivilegedRole(userRole)) return [];
 
     const extractRoutes = (routesArray) => {
       const result = [];
 
-      routesArray.forEach(route => {
+      routesArray.forEach((route) => {
         if (route.collapse && route.views) {
           result.push(...extractRoutes(route.views));
         } else if (route.element && route.path && canAccessRoute(route)) {
           result.push({
             path: route.path,
             element: route.element,
-            key: `${route.layout}${route.path}`
+            key: `${route.layout}${route.path}`,
           });
         }
       });
@@ -123,7 +146,7 @@ export default function Dashboard(props) {
     return extractRoutes(routes);
   }, [canAccessRoute, userRole]);
 
-  // Render routes for the current privileged role.
+  // Render routes for the current privileged role
   const renderRoutes = () => {
     if (isLoading) return null;
 
@@ -133,7 +156,6 @@ export default function Dashboard(props) {
 
     return (
       <>
-        {/* Render all routes accessible to the current role */}
         {accessibleRoutes.map((route) => (
           <Route
             key={route.key}
@@ -142,16 +164,12 @@ export default function Dashboard(props) {
           />
         ))}
 
-        {/* Catch-all for unmatched or unauthorized routes */}
-        <Route
-          path="*"
-          element={<Navigate to="/access-denied" replace />}
-        />
+        <Route path="*" element={<Navigate to="/access-denied" replace />} />
       </>
     );
   };
 
-  // Get active route for navbar (memoized by pathname)
+  // Memoized page brand text
   const brandText = useMemo(() => {
     const currentPath = location.pathname;
 
@@ -161,7 +179,6 @@ export default function Dashboard(props) {
           const found = findRoute(route.views);
           if (found) return found;
         } else if (route.path && route.layout) {
-          // Only consider /owner layout routes
           if (route.layout === "/owner") {
             const routePath = `${route.layout}${route.path}`;
             if (currentPath.includes(routePath) || currentPath === route.path) {
@@ -176,37 +193,7 @@ export default function Dashboard(props) {
     return findRoute(routes);
   }, [location.pathname]);
 
-  const mobileLogo = useMemo(
-    () => (
-      <Stack direction="row" spacing="12px" align="center" justify="center">
-        <Image
-          src={FlareLogo}
-          alt="Flare Logo"
-          w={{ base: "80px", sm: "90px", md: "100px" }}
-          h="auto"
-        />
-        <Box w="1px" h="20px" />
-      </Stack>
-    ),
-    []
-  );
-
-  const desktopLogo = useMemo(
-    () => (
-      <Stack direction="row" spacing="12px" align="center" justify="center">
-        <Image
-          src={FlareLogo}
-          alt="Flare Logo"
-          w={{ base: "120px", sm: "90px", md: "100px", lg: "100px", xl: "100px" }}
-          h="8vh"
-        />
-        <Box w="1px" h="20px" />
-      </Stack>
-    ),
-    []
-  );
-
-  // Redirect non-privileged sessions safely inside useEffect.
+  // Redirect non-privileged sessions safely inside useEffect
   useEffect(() => {
     if (authInitialized && !isPrivilegedRole(userRole)) {
       try {
@@ -217,11 +204,10 @@ export default function Dashboard(props) {
     }
   }, [authInitialized, userRole, dispatch]);
 
-  // Show loading state while auth is restoring
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" h="100vh">
-        Loading...
+      <Box display="flex" justifyContent="center" alignItems="center" h="100vh" bg="gray.50">
+        <PageSkeleton type="dashboard" />
       </Box>
     );
   }
@@ -229,95 +215,99 @@ export default function Dashboard(props) {
   if (!isPrivilegedRole(userRole)) {
     return <Navigate to="/auth/signin" replace />;
   }
-  return (
-    <Box>
-      <Box
-        minH={{
-          base: "12vh",
-          sm: "13vh",
-          md: "14vh",
-          lg: "15vh",
-          xl: "15vh",
-          "2xl": "15vh"
-        }}
-        w="100%"
-        position="fixed"
-        bgSize="cover"
-        top="0"
-      />
 
-      {/* Mobile Sidebar - role-filtered routes */}
+  return (
+    <Box minH="100vh" bg="gray.50">
+      {/* Mobile Drawer Sidebar */}
       <SidebarResponsive
-        logo={mobileLogo}
         routes={filteredRoutes}
-        hamburgerColor="white"
         isOpen={isSidebarOpen}
         onOpen={onSidebarOpen}
         onClose={onSidebarClose}
       />
 
-      {/* Desktop Sidebar - role-filtered routes */}
+      {/* Desktop Fixed Sidebar */}
       <Sidebar
         routes={filteredRoutes}
-        logo={desktopLogo}
+        isCollapsed={isCollapsed}
+        onToggleCollapse={handleToggleCollapse}
         {...rest}
       />
 
+      {/* Main Content Area: Zero overlap, sticky 64px header, max-width 1440px content */}
       <MainPanel
         id="main-panel"
+        ml={{ base: 0, lg: isCollapsed ? "72px" : "248px" }}
+        w={{
+          base: "100%",
+          lg: isCollapsed ? "calc(100% - 72px)" : "calc(100% - 248px)",
+        }}
+        h="100vh"
         maxH="100vh"
-        minH="100vh"
-        overflowX="hidden"
         overflowY="auto"
-        w={{ base: "100%", sm: "100%", md: "100%", lg: "calc(100% - 390px)", xl: "calc(100% - 410px)", "2xl": "calc(100% - 410px)" }}
-        transition="all 0.33s cubic-bezier(0.685, 0.0473, 0.346, 1)"
+        overflowX="hidden"
+        bg="gray.50"
+        float="none"
+        transition="margin-left 0.35s cubic-bezier(0.16, 1, 0.3, 1), width 0.35s cubic-bezier(0.16, 1, 0.3, 1)"
+        willChange="margin-left, width"
         css={{
           scrollbarWidth: "thin",
-          scrollbarColor: "#cbd5e1 transparent",
-          "&::-webkit-scrollbar": { width: "8px" },
-          "&::-webkit-scrollbar-track": { background: "transparent" },
-          "&::-webkit-scrollbar-thumb": { background: "#cbd5e1", borderRadius: "10px" },
-          "&:hover::-webkit-scrollbar-thumb": { background: "#94a3b8" },
+          scrollbarColor: "#FE2934 #F1F5F9",
+          scrollbarGutter: "stable",
+          "&::-webkit-scrollbar": {
+            width: "8px",
+          },
+          "&::-webkit-scrollbar-track": {
+            background: "#F1F5F9",
+            borderRadius: "9999px",
+            margin: "6px 0",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            background: "linear-gradient(180deg, #FE2934 0%, #FF5252 60%, rgba(254, 41, 52, 0.25) 100%)",
+            borderRadius: "9999px",
+            border: "2px solid transparent",
+            backgroundClip: "content-box",
+            transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+          },
+          "&::-webkit-scrollbar-thumb:hover": {
+            background: "linear-gradient(180deg, #E02424 0%, #FE2934 70%, rgba(224, 36, 36, 0.45) 100%)",
+            border: "2px solid transparent",
+            backgroundClip: "content-box",
+            boxShadow: "0 0 10px rgba(254, 41, 52, 0.5)",
+          },
         }}
       >
-        <Portal>
-          <AdminNavbar
-            onOpen={onSidebarOpen}
-            brandText={brandText}
-            secondary={false}
-            fixed={fixed}
-            {...rest}
-          />
-        </Portal>
+        {/* Sticky White Topbar (64px) */}
+        <AdminNavbar
+          onOpen={onSidebarOpen}
+          brandText={brandText}
+          isCollapsed={isCollapsed}
+          onToggleCollapse={handleToggleCollapse}
+          {...rest}
+        />
 
-        <PanelContent>
-          <PanelContainer
-            px={{ base: "15px", sm: "20px", md: "25px", lg: "30px", xl: "35px" }}
-            py={{ base: "15px", sm: "20px", md: "25px", lg: "30px", xl: "35px" }}
+        {/* Content Container (24px padding, max 1440px) */}
+        <Box
+          as="main"
+          w="100%"
+          maxW="1440px"
+          mx="auto"
+          p={{ base: 4, md: 6 }}
+          minH="calc(100vh - 64px)"
+        >
+          <React.Suspense
+            fallback={
+              <Box w="100%" py={4}>
+                <PageSkeleton type="dashboard" />
+              </Box>
+            }
           >
-            <React.Suspense
-              fallback={
-                <Flex justify="center" align="center" minH="60vh" w="100%">
-                  <Spinner size="xl" color="#008080" thickness="4px" speed="0.65s" emptyColor="gray.200" />
-                </Flex>
-              }
-            >
-              <Routes>
-                {renderRoutes()}
-                {/* Default route */}
-                <Route path="/" element={<Navigate to="/owner/dashboard" replace />} />
-              </Routes>
-            </React.Suspense>
-          </PanelContainer>
-        </PanelContent>
-
-        <Portal>
-          <FixedPlugin
-            secondary={false}
-            fixed={fixed}
-            onOpen={onPluginOpen}
-          />
-        </Portal>
+            <Routes>
+              {renderRoutes()}
+              <Route path="/" element={<Navigate to="/owner/dashboard" replace />} />
+            </Routes>
+          </React.Suspense>
+        </Box>
       </MainPanel>
     </Box>
   );

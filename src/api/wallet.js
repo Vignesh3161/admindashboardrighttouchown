@@ -73,3 +73,5 @@ export const revertPaidWithdrawal = (id, body) =>
 // Freeze / unfreeze technician payouts: { freeze: true|false, reason }
 export const toggleTechnicianPayoutFreeze = (technicianId, body) =>
   handle(apiClient.put(`/admin/wallet/technician/${technicianId}/freeze`, body));
+
+export const freezeTechnicianPayout = toggleTechnicianPayoutFreeze;

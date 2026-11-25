@@ -50,6 +50,7 @@ import { getTechnicianWalletOverview } from "api/wallet";
 import { formatInr } from "./FinancialBreakdown";
 import PayoutStatusBadge from "./PayoutStatusBadge";
 import { useAppToast } from "components/feedback";
+import { DrawerSkeleton } from "components/common";
 
 /**
  * TechnicianProfileDrawer
@@ -206,14 +207,7 @@ export default function TechnicianProfileDrawer({
 
         <DrawerBody p={6}>
           {loading ? (
-            <Center py={20}>
-              <VStack spacing={3}>
-                <Spinner size="lg" color="teal.500" thickness="3px" />
-                <Text fontSize="xs" color="gray.500">
-                  Loading technician liquidity and verification profile...
-                </Text>
-              </VStack>
-            </Center>
+            <DrawerSkeleton />
           ) : errorMsg ? (
             <Center py={16}>
               <VStack spacing={3}>
@@ -374,6 +368,7 @@ export default function TechnicianProfileDrawer({
                             size="2xs"
                             icon={<FaCopy />}
                             variant="ghost"
+                            aria-label="Copy account number"
                             onClick={() => copyToClipboard(rawAcc, "Account Number")}
                           />
                         </Tooltip>
@@ -392,6 +387,7 @@ export default function TechnicianProfileDrawer({
                             size="2xs"
                             icon={<FaCopy />}
                             variant="ghost"
+                            aria-label="Copy IFSC code"
                             onClick={() => copyToClipboard(ifsc, "IFSC Code")}
                           />
                         </Tooltip>
@@ -410,6 +406,7 @@ export default function TechnicianProfileDrawer({
                             size="2xs"
                             icon={<FaCopy />}
                             variant="ghost"
+                            aria-label="Copy UPI ID"
                             onClick={() => copyToClipboard(upiId, "UPI ID")}
                           />
                         </Tooltip>
@@ -482,6 +479,7 @@ export default function TechnicianProfileDrawer({
                                         size="2xs"
                                         icon={<FaReceipt color="#008080" />}
                                         variant="ghost"
+                                        aria-label="View official receipt"
                                         onClick={() => {
                                           onClose();
                                           onViewReceipt && onViewReceipt(wId);

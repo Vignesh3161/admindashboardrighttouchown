@@ -9,12 +9,7 @@ import {
   getToken,
   updateTokens,
 } from "./authStorage";
-
-const API_BASE_URL = (
-  process.env.REACT_APP_API_BASE_URL || "http://13.206.118.180:7372"
-)
-  .replace(/\/api\/?$/, "")
-  .replace(/\/+$/, "");
+import { API_BASE_URL } from "config/apiConfig";
 
 const refreshClient = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -149,8 +144,10 @@ const doRefresh = async ({ staleToken, staleRefreshToken } = {}) => {
   } catch (err) {
     const status = err.response?.status || 0;
     const code = err.response?.data?.code || "";
-    // Any 4xx client error (400, 401, 403, 404, etc.) on refresh means session is definitively unrecoverable -> terminal = true
-    const terminal = (status >= 400 && status < 500) || status === 0;
+    // Only actual auth rejections (401 Unauthorized or 403 Forbidden) from the auth server
+    // mean the refresh token is truly invalid or revoked.
+    // Network errors (status === 0), timeouts, or 5xx server issues are non-terminal and retryable.
+    const terminal = status === 401 || status === 403;
     throw new RefreshError(
       err.response?.data?.message ||
         err.message ||

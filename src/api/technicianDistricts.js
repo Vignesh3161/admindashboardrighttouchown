@@ -12,8 +12,18 @@ export const addTechnicianDistrictPermission = (technicianId, districtId) =>
 export const toggleTechnicianDistrictPermission = (technicianId, districtId, isEnabled) =>
   handle(apiClient.patch(`/admin/technicians/${technicianId}/districts/${districtId}`, { isEnabled }));
 
-export const removeTechnicianDistrictPermission = (technicianId, districtId) =>
-  handle(apiClient.delete(`/admin/technicians/${technicianId}/districts/${districtId}`));
+export const removeTechnicianDistrictPermission = async (technicianId, districtId) => {
+  const primaryAttempt = await handle(apiClient.delete(`/admin/technicians/${technicianId}/districts/${districtId}`));
+  if (!primaryAttempt.error) return primaryAttempt;
+
+  // Fallback to DELETE with body payload if path-parameter route returns an error
+  const fallbackAttempt = await handle(
+    apiClient.delete(`/admin/technicians/${technicianId}/districts`, { data: { districtId } })
+  );
+  if (!fallbackAttempt.error) return fallbackAttempt;
+
+  return primaryAttempt;
+};
 
 /* ================= TECHNICIAN CITY ZONE PERMISSIONS ================= */
 

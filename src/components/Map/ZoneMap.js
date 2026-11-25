@@ -10,6 +10,7 @@ import {
   IconButton,
   Select,
   Spinner,
+  Skeleton,
   Text,
   Tooltip,
   VStack,
@@ -240,7 +241,7 @@ export default function ZoneMap({
   showToolbar = true,
   showSearch = true,
   showDrawTools = true,
-  showNavControls = true,
+  showNavControls = false,
   selectedCityName = "",
   radiusKm = 10,
   onRadiusChange,
@@ -1945,10 +1946,7 @@ export default function ZoneMap({
                 </>
               ) : (
                 <>
-                  <Spinner size="sm" color="cyan.300" thickness="3px" />
-                  <Text fontSize="xs" fontWeight="600" color="gray.300">
-                    Loading district boundaries…
-                  </Text>
+                  <Skeleton h="16px" w="160px" borderRadius="4px" />
                 </>
               )}
             </VStack>

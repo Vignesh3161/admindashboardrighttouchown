@@ -2,10 +2,10 @@ import React from "react";
 import {
   SimpleGrid,
   Flex,
-  Stat,
-  StatLabel,
-  StatNumber,
-  Spinner,
+  Box,
+  Text,
+  Badge,
+  Skeleton,
   Icon,
 } from "@chakra-ui/react";
 import Card from "components/Card/Card.js";
@@ -19,14 +19,12 @@ import {
 import {
   FaUsers,
   FaUserCheck,
-  FaCheckCircle,
+  FaCalendarCheck,
   FaChartLine,
 } from "react-icons/fa";
 
 const UserStatsCards = React.memo(function UserStatsCards({
   stats,
-  activeFilter,
-  onFilterClick,
   isLoading,
   customColor = "#008080",
   textColor,
@@ -35,34 +33,42 @@ const UserStatsCards = React.memo(function UserStatsCards({
 
   const cards = [
     {
-      id: "all",
-      label: "Total Users",
-      value: isLoading ? <Spinner size="xs" /> : stats?.totalUsers || 0,
+      id: "total",
+      label: "Total Customers",
+      subLabel: "All Registered Users",
+      value: isLoading ? <Skeleton height="24px" width="40px" /> : stats?.totalUsers || 0,
       icon: FaUsers,
       iconBg: customColor,
+      color: textColor || "gray.800",
     },
     {
       id: "active",
-      label: "Active Users",
-      value: isLoading ? <Spinner size="xs" /> : stats?.activeUsers || 0,
+      label: "Active Accounts",
+      subLabel: "Active Status",
+      value: isLoading ? <Skeleton height="24px" width="40px" /> : stats?.activeUsers || 0,
       icon: FaUserCheck,
       iconBg: "green.500",
+      color: "green.600",
     },
     {
       id: "withBookings",
       label: "With Bookings",
-      value: isLoading ? <Spinner size="xs" /> : stats?.usersWithBookings || 0,
-      icon: FaCheckCircle,
-      iconBg: "orange.500",
+      subLabel: "Active / Completed Orders",
+      value: isLoading ? <Skeleton height="24px" width="40px" /> : stats?.usersWithBookings || 0,
+      icon: FaCalendarCheck,
+      iconBg: "blue.500",
+      color: "blue.600",
     },
     {
-      id: "paidUsers",
+      id: "revenue",
       label: "Total Revenue",
+      subLabel: "Platform Customer LTV",
       value: isLoading
-        ? <Spinner size="xs" />
-        : `₹${Number(stats?.totalRevenue || 0).toLocaleString()}`,
+        ? <Skeleton height="24px" width="50px" />
+        : `₹${Number(stats?.totalRevenue || 0).toLocaleString("en-IN")}`,
       icon: FaChartLine,
       iconBg: "purple.500",
+      color: "purple.600",
     },
   ];
 
@@ -73,8 +79,7 @@ const UserStatsCards = React.memo(function UserStatsCards({
       mb={{ base: 3, md: 4 }}
     >
       {cards.map((c) => {
-        const isActive = activeFilter === c.id;
-        const cardStyle = getSkeuomorphicCardStyle(isDark, isActive, customColor);
+        const cardStyle = getSkeuomorphicCardStyle(isDark, false, customColor);
 
         return (
           <Card
@@ -82,43 +87,52 @@ const UserStatsCards = React.memo(function UserStatsCards({
             minH={{ base: "90px", md: "105px" }}
             h={{ base: "auto", md: "105px" }}
             borderRadius="10px"
-            cursor="pointer"
-            onClick={() => onFilterClick && onFilterClick(c.id)}
             p={0}
             {...cardStyle}
           >
-            <CardBody position="relative" zIndex={1} p={{ base: 3, md: 4 }} display="flex" alignItems="center">
-              <Flex flexDirection="row" align="center" justify="space-between" w="100%">
-                <Stat me="auto">
-                  <StatLabel
-                    fontSize={{ base: "xs", md: "sm" }}
+            <CardBody
+              p={{ base: 3, md: 4 }}
+              display="flex"
+              alignItems="center"
+              h="100%"
+              w="100%"
+            >
+              <Flex align="center" justify="space-between" w="100%">
+                <Box flex="1" mr={2} overflow="hidden">
+                  <Text
+                    fontSize="xs"
                     color={isDark ? "gray.400" : "gray.600"}
                     fontWeight="bold"
-                    pb="2px"
                     noOfLines={1}
+                    lineHeight="1.2"
                   >
                     {c.label}
-                  </StatLabel>
-                  <Flex>
-                    <StatNumber
-                      fontSize={{ base: "lg", md: "2xl" }}
-                      color={textColor || (isDark ? "gray.100" : "gray.800")}
-                      fontWeight="800"
-                    >
-                      {c.value}
-                    </StatNumber>
+                  </Text>
+                  <Text
+                    as="div"
+                    fontSize={{ base: "xl", md: "2xl" }}
+                    fontWeight="black"
+                    color={c.color}
+                    mt={0.5}
+                    lineHeight="1.1"
+                  >
+                    {c.value}
+                  </Text>
+                  <Flex align="center" mt={1} minH="18px">
+                    <Text fontSize="10px" color="gray.400" fontWeight="medium" lineHeight="1">
+                      {c.subLabel}
+                    </Text>
                   </Flex>
-                </Stat>
+                </Box>
                 <IconBox
                   h={{ base: "40px", md: "44px" }}
                   w={{ base: "40px", md: "44px" }}
                   flexShrink={0}
-                  ml={2}
                   {...getSkeuomorphicIconBoxStyle(c.iconBg)}
                 >
                   <Icon
                     as={c.icon}
-                    boxSize={{ base: "18px", md: "20px" }}
+                    boxSize="20px"
                     color="white"
                     sx={skeuomorphicIconFilter}
                   />

@@ -1,17 +1,129 @@
-node_modules
-package-lock.json
-build
+# ==============================================================================
+# RightTouch Admin Dashboard - Git Ignore Configuration
+# ==============================================================================
 
-# Playwright
+# ------------------------------------------------------------------------------
+# Dependencies & Package Management
+# ------------------------------------------------------------------------------
+node_modules/
+package-lock.json
+.pnp
+.pnp.js
+
+# ------------------------------------------------------------------------------
+# Production & Distribution Builds
+# ------------------------------------------------------------------------------
+build/
+dist/
+out/
+
+# ------------------------------------------------------------------------------
+# Desktop Application (Tauri & Rust)
+# ------------------------------------------------------------------------------
+src-tauri/target/
+src-tauri/gen/schemas/
+target/
+**/*.rs.bk
+*.deb
+*.appimage
+*.AppImage
+*.dmg
+*.msi
+*.exe
+
+# ------------------------------------------------------------------------------
+# Environment & Secret Configuration
+# ------------------------------------------------------------------------------
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+.env.*
+tests/.env
+!.env.example
+!.env.template
+
+# ------------------------------------------------------------------------------
+# Testing, Coverage & Playwright Reports
+# ------------------------------------------------------------------------------
+coverage/
+.nyc_output/
 /test-results/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
-tests/.env
-.env.*
 
-# Environment files
-.env
-.env.*
-!.env.example
+# ------------------------------------------------------------------------------
+# Logs & Diagnostic Outputs
+# ------------------------------------------------------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ------------------------------------------------------------------------------
+# Editor & IDE Directories
+# ------------------------------------------------------------------------------
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+*.bak
+.sublime-project
+.sublime-workspace
+
+# VS Code (preserve shared workspace configuration)
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# ------------------------------------------------------------------------------
+# Operating System Files
+# ------------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ------------------------------------------------------------------------------
+# Cache & Temporary Files
+# ------------------------------------------------------------------------------
+.cache/
+.parcel-cache/
+.eslintcache
+.prettiercache
+*.tsbuildinfo
+*.tmp
+*.temp
+
+# ------------------------------------------------------------------------------
+# Cloud & Deployment Platforms
+# ------------------------------------------------------------------------------
+.genezio/
+.serverless/
+
+# ------------------------------------------------------------------------------
+# AI Coding Agents & Local Assistant Artifacts
+# ------------------------------------------------------------------------------
+.agents/
+skills-lock.json
+.antigravity/
+.gemini/
+.claude/
+.cursor/
+.windsurf/

@@ -28,12 +28,21 @@ import {
   TabPanel,
   Tag,
   Divider,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerHeader,
+  DrawerCloseButton,
+  DrawerBody,
+  DrawerFooter,
+  useColorMode,
 } from "@chakra-ui/react";
 import { useAppToast } from "components/feedback";
 import ErrorState from "components/feedback/ErrorState";
-import AppModal from "components/common/AppModal";
 import RefreshButton from "components/common/RefreshButton";
 import StatusBadge from "components/common/StatusBadge";
+import { TableSkeleton } from "components/common";
+import TransactionDetailDrawer from "components/Finance/TransactionDetailDrawer";
 
 import {
   FaChevronLeft,
@@ -76,8 +85,8 @@ const BRAND = "#008080";
 
 const formatCurrency = (value) => {
   const num = parseFloat(value || 0);
-  if (isNaN(num)) return "₹0";
-  return `₹${num.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  if (isNaN(num)) return "₹0.00";
+  return `₹${num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 const formatDate = (value) => {
@@ -98,7 +107,8 @@ const formatDate = (value) => {
 };
 
 export default function FinanceTracking() {
-  const isDark = false;
+  const { colorMode } = useColorMode();
+  const isDark = colorMode === "dark";
   const toast = useAppToast();
   const dispatch = useAppDispatch();
 
@@ -137,6 +147,15 @@ export default function FinanceTracking() {
   const [selectedTechId, setSelectedTechId] = useState(null);
   const [isTechDetailOpen, setIsTechDetailOpen] = useState(false);
   const [techLoadingId, setTechLoadingId] = useState(null);
+
+  // Transaction detail slide drawer state
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [isTransactionDrawerOpen, setIsTransactionDrawerOpen] = useState(false);
+
+  const handleRowClick = (item, source = "breakdown") => {
+    setSelectedTransaction({ ...item, _source: source });
+    setIsTransactionDrawerOpen(true);
+  };
 
   const itemsPerPage = 10;
 
@@ -469,7 +488,7 @@ export default function FinanceTracking() {
   const unpaidServicesCount = summary?.services?.unpaid?.count || 0;
 
   return (
-    <Box pt={{ base: "120px", md: "80px" }} px={{ base: "16px", md: "24px" }} pb="40px">
+    <Box pt={0} px={0} pb="40px">
       <VStack spacing={6} align="stretch">
         {/* ================= 1. PAGE HEADER ================= */}
         <Flex
@@ -528,7 +547,15 @@ export default function FinanceTracking() {
         )}
 
         {/* ================= 2. EXECUTIVE HERO KPI CARDS ================= */}
-        <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={4}>
+        <Box
+          position={{ base: "static", md: "sticky" }}
+          top={{ base: "0", md: "64px" }}
+          zIndex="900"
+          bg="gray.50"
+          pt={{ base: 1, md: 2 }}
+          pb={{ base: 2, md: 3 }}
+        >
+          <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={4}>
           {/* Card 1: Gross Inflows */}
           <Box
             p={5}
@@ -661,6 +688,7 @@ export default function FinanceTracking() {
             </HStack>
           </Box>
         </SimpleGrid>
+        </Box>
 
         {/* ================= 3. FINANCIAL STREAMS & WITHDRAWAL LIFECYCLE SUMMARY ================= */}
         <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
@@ -1046,14 +1074,9 @@ export default function FinanceTracking() {
 
                   {/* Table view */}
                   {isLoadingBreakdown ? (
-                    <Center py={16}>
-                      <VStack spacing={3}>
-                        <Spinner size="lg" color={BRAND} thickness="3px" />
-                        <Text fontSize="sm" color="gray.500" fontWeight="600">
-                          Loading booking financial breakdown...
-                        </Text>
-                      </VStack>
-                    </Center>
+                    <Box py={4}>
+                      <TableSkeleton rows={8} columns={7} />
+                    </Box>
                   ) : breakdown.length === 0 ? (
                     <Center py={16} bg={isDark ? "gray.800" : "gray.50"} borderRadius="16px">
                       <VStack spacing={2}>
@@ -1094,8 +1117,10 @@ export default function FinanceTracking() {
                             return (
                               <Tr
                                 key={bId || idx}
-                                _hover={{ bg: isDark ? "gray.800" : "gray.50" }}
+                                cursor="pointer"
+                                _hover={{ bg: isDark ? "gray.800" : "teal.50" }}
                                 transition="background 0.15s ease"
+                                onClick={() => handleRowClick(item, "breakdown")}
                               >
                                 <Td fontSize="xs" color="gray.500" fontWeight="600">
                                   {(breakdownPage - 1) * itemsPerPage + idx + 1}
@@ -1121,7 +1146,10 @@ export default function FinanceTracking() {
                                           variant="ghost"
                                           color="gray.400"
                                           _hover={{ color: BRAND }}
-                                          onClick={() => copyToClipboard(bId, "Booking ID")}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            copyToClipboard(bId, "Booking ID");
+                                          }}
                                         />
                                       </HStack>
                                     )}
@@ -1321,14 +1349,9 @@ export default function FinanceTracking() {
 
                   {/* Ledger Table */}
                   {isLoadingPayments ? (
-                    <Center py={16}>
-                      <VStack spacing={3}>
-                        <Spinner size="lg" color={BRAND} thickness="3px" />
-                        <Text fontSize="sm" color="gray.500" fontWeight="600">
-                          Loading transaction ledger...
-                        </Text>
-                      </VStack>
-                    </Center>
+                    <Box py={4}>
+                      <TableSkeleton rows={8} columns={7} />
+                    </Box>
                   ) : payments.length === 0 ? (
                     <Center py={16} bg={isDark ? "gray.800" : "gray.50"} borderRadius="16px">
                       <VStack spacing={2}>
@@ -1364,8 +1387,10 @@ export default function FinanceTracking() {
                             return (
                               <Tr
                                 key={p.paymentId || p._id || idx}
-                                _hover={{ bg: isDark ? "gray.800" : "gray.50" }}
+                                cursor="pointer"
+                                _hover={{ bg: isDark ? "gray.800" : "teal.50" }}
                                 transition="background 0.15s ease"
+                                onClick={() => handleRowClick(p, "payments")}
                               >
                                 <Td fontSize="xs" color="gray.500" fontWeight="600">
                                   {(paymentsPage - 1) * itemsPerPage + idx + 1}
@@ -1387,7 +1412,10 @@ export default function FinanceTracking() {
                                         variant="ghost"
                                         color="gray.400"
                                         _hover={{ color: BRAND }}
-                                        onClick={() => copyToClipboard(orderId, "Reference")}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          copyToClipboard(orderId, "Reference");
+                                        }}
                                       />
                                     )}
                                   </HStack>
@@ -1605,193 +1633,219 @@ export default function FinanceTracking() {
         </Box>
       </VStack>
 
-      {/* ================= 5. TECHNICIAN FINANCIAL STATEMENT AUDIT MODAL ================= */}
-      <AppModal
+      {/* ================= 5. TECHNICIAN FINANCIAL STATEMENT AUDIT DRAWER ================= */}
+      <Drawer
         isOpen={isTechDetailOpen}
+        placement="right"
+        size="lg"
         onClose={() => setIsTechDetailOpen(false)}
-        title="Technician Financial Statement"
-        icon={MdAccountBalanceWallet}
-        iconColor={BRAND}
-        size="3xl"
       >
-        {selectedTechDetail && (
-          <VStack spacing={5} align="stretch" py={1}>
-            {/* Header Identity Card */}
-            <Box
-              p={4}
-              bg={isDark ? "gray.800" : "gray.50"}
-              borderRadius="14px"
-              border="1px solid"
-              borderColor={isDark ? "gray.700" : "gray.200"}
-            >
-              <Flex
-                direction={{ base: "column", sm: "row" }}
-                justify="space-between"
-                align={{ base: "flex-start", sm: "center" }}
-                gap={3}
-              >
-                <HStack spacing={3}>
-                  <Center w="48px" h="48px" borderRadius="14px" bg={BRAND} color="white" fontWeight="900" fontSize="md">
-                    {(selectedTechDetail.data?.technician?.name || getTechName(selectedTechDetail.technician))
-                      .slice(0, 2)
-                      .toUpperCase()}
-                  </Center>
-                  <Box>
-                    <HStack spacing={2}>
-                      <Text fontSize="md" fontWeight="800" color={isDark ? "white" : "gray.850"}>
-                        {selectedTechDetail.data?.technician?.name || getTechName(selectedTechDetail.technician)}
-                      </Text>
-                      <StatusBadge
-                        colorScheme={selectedTechDetail.data?.technician?.workStatus === "approved" ? "teal" : "gray"}
-                        label={selectedTechDetail.data?.technician?.workStatus || "Active"}
-                        variant="subtle"
-                      />
-                    </HStack>
-                    <Text fontSize="xs" color="gray.500" mt={0.5}>
-                      {selectedTechDetail.data?.technician?.mobile ||
-                        selectedTechDetail.technician.userId?.mobileNumber ||
-                        selectedTechDetail.technician.mobileNumber ||
-                        "No contact registered"}
-                    </Text>
-                  </Box>
-                </HStack>
-
+        <DrawerOverlay />
+        <DrawerContent bg={isDark ? "gray.900" : "white"}>
+          <DrawerCloseButton />
+          <DrawerHeader borderBottomWidth="1px" borderColor={isDark ? "gray.800" : "gray.100"}>
+            <HStack spacing={3}>
+              <Box p={2} bg="teal.50" borderRadius="lg" color={BRAND}>
+                <Icon as={MdAccountBalanceWallet} boxSize={5} />
+              </Box>
+              <Box>
+                <Text fontSize="md" fontWeight="bold" color={isDark ? "white" : "gray.800"}>
+                  Technician Financial Statement
+                </Text>
+                <Text fontSize="xs" color="gray.500">
+                  Comprehensive audit of bookings, commissions and wallet ledger
+                </Text>
+              </Box>
+            </HStack>
+          </DrawerHeader>
+          <DrawerBody py={5}>
+            {selectedTechDetail && (
+              <VStack spacing={5} align="stretch" py={1}>
+                {/* Header Identity Card */}
                 <Box
-                  p={3}
-                  bg={isDark ? "gray.900" : "teal.50"}
-                  borderRadius="12px"
+                  p={4}
+                  bg={isDark ? "gray.800" : "gray.50"}
+                  borderRadius="14px"
                   border="1px solid"
-                  borderColor={isDark ? "gray.700" : "teal.200"}
-                  textAlign={{ base: "left", sm: "right" }}
-                  minW="150px"
+                  borderColor={isDark ? "gray.700" : "gray.200"}
                 >
-                  <Text fontSize="2xs" color="teal.600" fontWeight="700" textTransform="uppercase">
-                    Current Wallet Balance
-                  </Text>
-                  <Text fontSize="xl" fontWeight="900" color="teal.600">
-                    {formatCurrency(selectedTechDetail.data?.technician?.walletBalance)}
-                  </Text>
-                </Box>
-              </Flex>
-            </Box>
+                  <Flex
+                    direction={{ base: "column", sm: "row" }}
+                    justify="space-between"
+                    align={{ base: "flex-start", sm: "center" }}
+                    gap={3}
+                  >
+                    <HStack spacing={3}>
+                      <Center w="48px" h="48px" borderRadius="14px" bg={BRAND} color="white" fontWeight="900" fontSize="md">
+                        {(selectedTechDetail.data?.technician?.name || getTechName(selectedTechDetail.technician))
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </Center>
+                      <Box>
+                        <HStack spacing={2}>
+                          <Text fontSize="md" fontWeight="800" color={isDark ? "white" : "gray.850"}>
+                            {selectedTechDetail.data?.technician?.name || getTechName(selectedTechDetail.technician)}
+                          </Text>
+                          <StatusBadge
+                            colorScheme={selectedTechDetail.data?.technician?.workStatus === "approved" ? "teal" : "gray"}
+                            label={selectedTechDetail.data?.technician?.workStatus || "Active"}
+                            variant="subtle"
+                          />
+                        </HStack>
+                        <Text fontSize="xs" color="gray.500" mt={0.5}>
+                          {selectedTechDetail.data?.technician?.mobile ||
+                            selectedTechDetail.technician.userId?.mobileNumber ||
+                            selectedTechDetail.technician.mobileNumber ||
+                            "No contact registered"}
+                        </Text>
+                      </Box>
+                    </HStack>
 
-            {/* Section 1: Service & Booking Economics */}
-            <Box>
-              <Text fontSize="xs" fontWeight="800" color="gray.500" textTransform="uppercase" mb={3} letterSpacing="0.5px">
-                Booking Revenue & Commissions
-              </Text>
-              <SimpleGrid columns={{ base: 2, sm: 3, md: 4 }} spacing={3}>
-                <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
-                  <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Jobs Completed</Text>
-                  <Text fontSize="md" fontWeight="800" color={isDark ? "white" : "gray.800"} mt={0.5}>
-                    {selectedTechDetail.data?.bookings?.count || 0}
-                  </Text>
-                </Box>
-
-                <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
-                  <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Settled Jobs</Text>
-                  <Text fontSize="md" fontWeight="800" color="green.600" mt={0.5}>
-                    {selectedTechDetail.data?.bookings?.settledCount || 0}
-                  </Text>
-                </Box>
-
-                <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
-                  <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Service Value</Text>
-                  <Text fontSize="md" fontWeight="800" color={isDark ? "white" : "gray.800"} mt={0.5}>
-                    {formatCurrency(selectedTechDetail.data?.bookings?.serviceAmount)}
-                  </Text>
-                </Box>
-
-                <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
-                  <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">GST Collected</Text>
-                  <Text fontSize="md" fontWeight="800" color="orange.600" mt={0.5}>
-                    {formatCurrency(selectedTechDetail.data?.bookings?.gst)}
-                  </Text>
-                </Box>
-
-                <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
-                  <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Tips Received</Text>
-                  <Text fontSize="md" fontWeight="800" color="purple.600" mt={0.5}>
-                    {formatCurrency(selectedTechDetail.data?.bookings?.tip)}
-                  </Text>
-                </Box>
-
-                <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
-                  <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Commission Cut</Text>
-                  <Text fontSize="md" fontWeight="800" color="red.500" mt={0.5}>
-                    {formatCurrency(selectedTechDetail.data?.bookings?.commission)}
-                  </Text>
+                    <Box
+                      p={3}
+                      bg={isDark ? "gray.900" : "teal.50"}
+                      borderRadius="12px"
+                      border="1px solid"
+                      borderColor={isDark ? "gray.700" : "teal.200"}
+                      textAlign={{ base: "left", sm: "right" }}
+                      minW="150px"
+                    >
+                      <Text fontSize="2xs" color="teal.600" fontWeight="700" textTransform="uppercase">
+                        Current Wallet Balance
+                      </Text>
+                      <Text fontSize="xl" fontWeight="900" color="teal.600">
+                        {formatCurrency(selectedTechDetail.data?.technician?.walletBalance)}
+                      </Text>
+                    </Box>
+                  </Flex>
                 </Box>
 
-                <Box p={3} bg={isDark ? "gray.800" : "green.50"} borderRadius="12px" border="1px solid" borderColor={isDark ? "transparent" : "green.200"}>
-                  <Text fontSize="3xs" color="green.700" fontWeight="700" textTransform="uppercase">Net Earned</Text>
-                  <Text fontSize="md" fontWeight="900" color="green.700" mt={0.5}>
-                    {formatCurrency(selectedTechDetail.data?.bookings?.earned)}
+                {/* Section 1: Service & Booking Economics */}
+                <Box>
+                  <Text fontSize="xs" fontWeight="800" color="gray.500" textTransform="uppercase" mb={3} letterSpacing="0.5px">
+                    Booking Revenue & Commissions
                   </Text>
+                  <SimpleGrid columns={{ base: 2, sm: 3, md: 4 }} spacing={3}>
+                    <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
+                      <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Jobs Completed</Text>
+                      <Text fontSize="md" fontWeight="800" color={isDark ? "white" : "gray.800"} mt={0.5}>
+                        {selectedTechDetail.data?.bookings?.count || 0}
+                      </Text>
+                    </Box>
+
+                    <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
+                      <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Settled Jobs</Text>
+                      <Text fontSize="md" fontWeight="800" color="green.600" mt={0.5}>
+                        {selectedTechDetail.data?.bookings?.settledCount || 0}
+                      </Text>
+                    </Box>
+
+                    <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
+                      <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Service Value</Text>
+                      <Text fontSize="md" fontWeight="800" color={isDark ? "white" : "gray.800"} mt={0.5}>
+                        {formatCurrency(selectedTechDetail.data?.bookings?.serviceAmount)}
+                      </Text>
+                    </Box>
+
+                    <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
+                      <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">GST Collected</Text>
+                      <Text fontSize="md" fontWeight="800" color="orange.600" mt={0.5}>
+                        {formatCurrency(selectedTechDetail.data?.bookings?.gst)}
+                      </Text>
+                    </Box>
+
+                    <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
+                      <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Tips Received</Text>
+                      <Text fontSize="md" fontWeight="800" color="purple.600" mt={0.5}>
+                        {formatCurrency(selectedTechDetail.data?.bookings?.tip)}
+                      </Text>
+                    </Box>
+
+                    <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
+                      <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Commission Cut</Text>
+                      <Text fontSize="md" fontWeight="800" color="red.500" mt={0.5}>
+                        {formatCurrency(selectedTechDetail.data?.bookings?.commission)}
+                      </Text>
+                    </Box>
+
+                    <Box p={3} bg={isDark ? "gray.800" : "green.50"} borderRadius="12px" border="1px solid" borderColor={isDark ? "transparent" : "green.200"}>
+                      <Text fontSize="3xs" color="green.700" fontWeight="700" textTransform="uppercase">Net Earned</Text>
+                      <Text fontSize="md" fontWeight="900" color="green.700" mt={0.5}>
+                        {formatCurrency(selectedTechDetail.data?.bookings?.earned)}
+                      </Text>
+                    </Box>
+                  </SimpleGrid>
                 </Box>
-              </SimpleGrid>
-            </Box>
 
-            <Divider borderColor={isDark ? "gray.700" : "gray.200"} />
+                <Divider borderColor={isDark ? "gray.700" : "gray.200"} />
 
-            {/* Section 2: Wallet Ledger Credits & Deductions */}
-            <Box>
-              <Text fontSize="xs" fontWeight="800" color="gray.500" textTransform="uppercase" mb={3} letterSpacing="0.5px">
-                Wallet Ledger Inflows & Deductions
-              </Text>
-              <SimpleGrid columns={{ base: 2, sm: 3 }} spacing={3}>
-                <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
-                  <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Job Inflow Credited</Text>
-                  <Text fontSize="md" fontWeight="800" color="green.600" mt={0.5}>
-                    {formatCurrency(selectedTechDetail.data?.ledger?.jobEarnings)}
+                {/* Section 2: Wallet Ledger Credits & Deductions */}
+                <Box>
+                  <Text fontSize="xs" fontWeight="800" color="gray.500" textTransform="uppercase" mb={3} letterSpacing="0.5px">
+                    Wallet Ledger Inflows & Deductions
                   </Text>
-                </Box>
+                  <SimpleGrid columns={{ base: 2, sm: 3 }} spacing={3}>
+                    <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
+                      <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Job Inflow Credited</Text>
+                      <Text fontSize="md" fontWeight="800" color="green.600" mt={0.5}>
+                        {formatCurrency(selectedTechDetail.data?.ledger?.jobEarnings)}
+                      </Text>
+                    </Box>
 
-                <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
-                  <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Tips Credited</Text>
-                  <Text fontSize="md" fontWeight="800" color="purple.600" mt={0.5}>
-                    {formatCurrency(selectedTechDetail.data?.ledger?.tips)}
-                  </Text>
-                </Box>
+                    <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
+                      <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Tips Credited</Text>
+                      <Text fontSize="md" fontWeight="800" color="purple.600" mt={0.5}>
+                        {formatCurrency(selectedTechDetail.data?.ledger?.tips)}
+                      </Text>
+                    </Box>
 
-                <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
-                  <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Bonuses Added</Text>
-                  <Text fontSize="md" fontWeight="800" color="teal.600" mt={0.5}>
-                    {formatCurrency(selectedTechDetail.data?.ledger?.bonuses)}
-                  </Text>
-                </Box>
+                    <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
+                      <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Bonuses Added</Text>
+                      <Text fontSize="md" fontWeight="800" color="teal.600" mt={0.5}>
+                        {formatCurrency(selectedTechDetail.data?.ledger?.bonuses)}
+                      </Text>
+                    </Box>
 
-                <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
-                  <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Withdrawals Paid</Text>
-                  <Text fontSize="md" fontWeight="800" color={isDark ? "white" : "gray.800"} mt={0.5}>
-                    {formatCurrency(selectedTechDetail.data?.ledger?.withdrawals)}
-                  </Text>
-                </Box>
+                    <Box p={3} bg={isDark ? "gray.800" : "gray.50"} borderRadius="12px">
+                      <Text fontSize="3xs" color="gray.500" fontWeight="700" textTransform="uppercase">Withdrawals Paid</Text>
+                      <Text fontSize="md" fontWeight="800" color={isDark ? "white" : "gray.800"} mt={0.5}>
+                        {formatCurrency(selectedTechDetail.data?.ledger?.withdrawals)}
+                      </Text>
+                    </Box>
 
-                <Box p={3} bg={isDark ? "gray.800" : "red.50"} borderRadius="12px" border="1px solid" borderColor={isDark ? "transparent" : "red.200"}>
-                  <Text fontSize="3xs" color="red.700" fontWeight="700" textTransform="uppercase">Penalties Deducted</Text>
-                  <Text fontSize="md" fontWeight="800" color="red.600" mt={0.5}>
-                    {formatCurrency(selectedTechDetail.data?.ledger?.penalties)}
-                  </Text>
-                </Box>
+                    <Box p={3} bg={isDark ? "gray.800" : "red.50"} borderRadius="12px" border="1px solid" borderColor={isDark ? "transparent" : "red.200"}>
+                      <Text fontSize="3xs" color="red.700" fontWeight="700" textTransform="uppercase">Penalties Deducted</Text>
+                      <Text fontSize="md" fontWeight="800" color="red.600" mt={0.5}>
+                        {formatCurrency(selectedTechDetail.data?.ledger?.penalties)}
+                      </Text>
+                    </Box>
 
-                <Box p={3} bg={isDark ? "gray.800" : "green.50"} borderRadius="12px" border="1px solid" borderColor={isDark ? "transparent" : "green.200"}>
-                  <Text fontSize="3xs" color="green.700" fontWeight="700" textTransform="uppercase">Total Lifetime Credited</Text>
-                  <Text fontSize="md" fontWeight="900" color="green.700" mt={0.5}>
-                    {formatCurrency(selectedTechDetail.data?.ledger?.totalCredited)}
-                  </Text>
+                    <Box p={3} bg={isDark ? "gray.800" : "green.50"} borderRadius="12px" border="1px solid" borderColor={isDark ? "transparent" : "green.200"}>
+                      <Text fontSize="3xs" color="green.700" fontWeight="700" textTransform="uppercase">Total Lifetime Credited</Text>
+                      <Text fontSize="md" fontWeight="900" color="green.700" mt={0.5}>
+                        {formatCurrency(selectedTechDetail.data?.ledger?.totalCredited)}
+                      </Text>
+                    </Box>
+                  </SimpleGrid>
                 </Box>
-              </SimpleGrid>
-            </Box>
+              </VStack>
+            )}
+          </DrawerBody>
+          <DrawerFooter borderTopWidth="1px" borderColor={isDark ? "gray.800" : "gray.100"}>
+            <Button size="sm" variant="outline" onClick={() => setIsTechDetailOpen(false)} borderRadius="8px">
+              Close Statement
+            </Button>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
-            <Flex justify="flex-end" pt={2}>
-              <Button size="sm" variant="outline" onClick={() => setIsTechDetailOpen(false)} borderRadius="8px">
-                Close Statement
-              </Button>
-            </Flex>
-          </VStack>
-        )}
-      </AppModal>
+      {/* ================= 6. FINANCIAL TRANSACTION BREAKDOWN SLIDE DRAWER ================= */}
+      <TransactionDetailDrawer
+        isOpen={isTransactionDrawerOpen}
+        onClose={() => setIsTransactionDrawerOpen(false)}
+        data={selectedTransaction}
+        source={selectedTransaction?._source || "breakdown"}
+      />
     </Box>
   );
 }

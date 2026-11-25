@@ -617,8 +617,8 @@ export default function AdminPayments() {
 
   return (
     <Box
-      pt={{ base: "120px", md: "80px" }}
-      px={{ base: "16px", md: "24px" }}
+      pt={0}
+      px={0}
       pb="40px"
     >
       <VStack spacing={6} align="stretch">

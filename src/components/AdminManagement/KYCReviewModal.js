@@ -1,5 +1,6 @@
 import React from "react";
 import AppModal from "components/common/AppModal";
+import { DrawerSkeleton } from "components/common";
 import {
   Flex,
   Box,
@@ -161,9 +162,7 @@ export default function KYCReviewModal({
             </HStack>
           </Flex></>}>
           {kycLoading ? (
-            <Flex justify="center" align="center" h="200px">
-              <Spinner size="lg" color={customColor} />
-            </Flex>
+            <DrawerSkeleton />
           ) : kycData ? (
             (() => {
               let rec = Array.isArray(kycData)
@@ -316,6 +315,7 @@ export default function KYCReviewModal({
                             as="a"
                             href={getImageUrl(docs.aadhaarUrl)}
                             target="_blank"
+                            rel="noopener noreferrer"
                           >
                             View Full Size
                           </Button>
@@ -329,7 +329,7 @@ export default function KYCReviewModal({
                         Aadhaar Number
                       </Text>
                       <Text fontSize="xs" fontWeight="bold" fontFamily="monospace">
-                        {rec.aadhaarNumber || "N/A"}
+                        {rec.aadhaarNumber ? `•••• •••• ${String(rec.aadhaarNumber).slice(-4)}` : "N/A"}
                       </Text>
                     </Box>
 
@@ -364,6 +364,7 @@ export default function KYCReviewModal({
                             as="a"
                             href={getImageUrl(docs.panUrl)}
                             target="_blank"
+                            rel="noopener noreferrer"
                           >
                             View Full Size
                           </Button>
@@ -377,7 +378,7 @@ export default function KYCReviewModal({
                         PAN Number
                       </Text>
                       <Text fontSize="xs" fontWeight="bold" fontFamily="monospace">
-                        {rec.panNumber || "N/A"}
+                        {rec.panNumber ? `${String(rec.panNumber).slice(0, 5)}••••${String(rec.panNumber).slice(-1)}` : "N/A"}
                       </Text>
                     </Box>
 
@@ -412,6 +413,7 @@ export default function KYCReviewModal({
                             as="a"
                             href={getImageUrl(docs.dlUrl)}
                             target="_blank"
+                            rel="noopener noreferrer"
                           >
                             View Full Size
                           </Button>

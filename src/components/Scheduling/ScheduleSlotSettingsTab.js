@@ -48,6 +48,7 @@ import {
 } from "react-icons/fa";
 import { MdRefresh } from "react-icons/md";
 import { useAppToast } from "components/feedback";
+import { FormSkeleton } from "components/common";
 import ConfirmActionModal from "components/common/ConfirmActionModal";
 import {
   getScheduleSlotSettings,
@@ -364,14 +365,9 @@ export default function ScheduleSlotSettingsTab() {
 
   if (loading && !serverConfig) {
     return (
-      <Center py={24}>
-        <VStack spacing={4}>
-          <Spinner size="xl" color="teal.500" thickness="3px" />
-          <Text fontSize="sm" color="gray.500" fontWeight="600">
-            Loading schedule slot configuration &amp; live preview...
-          </Text>
-        </VStack>
-      </Center>
+      <Box py={8}>
+        <FormSkeleton fields={6} />
+      </Box>
     );
   }
 

@@ -1,87 +1,93 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import {
-  Box,
   Flex,
-  IconButton,
   HStack,
+  IconButton,
+  Text,
 } from "@chakra-ui/react";
 import { HamburgerIcon } from "@chakra-ui/icons";
 import AdminNavbarLinks from "./AdminNavbarLinks";
+import CommandPalette from "components/common/CommandPalette";
 
 const AdminNavbar = React.memo(function AdminNavbar(props) {
-  const { onOpen } = props;
-  const [scrolled, setScrolled] = useState(false);
+  const { onOpen, brandText = "Dashboard" } = props;
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 8);
+    const handleGlobalKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, []);
 
   return (
     <>
-      {/* Background layer for deep visual anchor */}
-      <Box
-        position="fixed"
-        top="0"
-        left="0"
-        right="0"
-        height={{ base: "0px", md: "90px", lg: "95px" }}
-        bg="#008080"
-        zIndex="-1"
-      />
-
-      {/* Main Luxury Executive Header Bar */}
       <Flex
         as="header"
-        position="fixed"
+        position="sticky"
         top="0"
         left="0"
         right="0"
         w="100%"
-        h={{ base: "64px", md: "74px" }}
+        h="64px"
         align="center"
         justify="space-between"
-        px={{ base: 3, sm: 4, md: 6, lg: 8 }}
-        bg="linear-gradient(135deg, #008080 0%, #006b6b 60%, #005454 100%)"
-        backdropFilter="blur(12px)"
-        sx={{ WebkitBackdropFilter: "blur(12px)" }}
-        borderBottom="1px solid"
-        borderColor="rgba(255, 255, 255, 0.16)"
-        boxShadow={
-          scrolled
-            ? "0 10px 28px -4px rgba(0, 50, 50, 0.5), 0 2px 8px rgba(0, 0, 0, 0.15)"
-            : "0 4px 18px rgba(0, 50, 50, 0.28)"
-        }
-        transition="all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+        px={{ base: 4, md: 6 }}
+        bg="linear-gradient(90deg, #027475 0%, #006060 100%)"
+        borderBottom="1px solid rgba(255, 255, 255, 0.12)"
+        boxShadow="0 2px 12px rgba(0, 60, 60, 0.18)"
         zIndex="1000"
+        transition="box-shadow 0.2s ease"
       >
-        {/* LEFT SECTION: Mobile Hamburger Trigger */}
-        <HStack spacing={3} align="center">
+        {/* LEFT SECTION: Mobile Hamburger (< lg) + Page Title */}
+        <HStack spacing={2.5} align="center">
+          {/* Mobile Drawer Trigger (< lg only) */}
           <IconButton
             aria-label="Open Navigation Drawer"
             icon={<HamburgerIcon boxSize={5} color="white" />}
             display={{ base: "flex", lg: "none" }}
             variant="ghost"
             size="sm"
-            borderRadius="10px"
-            bg="rgba(255, 255, 255, 0.12)"
-            _hover={{ bg: "rgba(255, 255, 255, 0.22)" }}
-            _active={{ bg: "rgba(255, 255, 255, 0.3)" }}
+            borderRadius="8px"
+            bg="whiteAlpha.200"
+            _hover={{ bg: "whiteAlpha.300" }}
             onClick={onOpen}
           />
+
+          <Text
+            color="white"
+            fontWeight="800"
+            fontSize={{ base: "sm", md: "md" }}
+            letterSpacing="-0.02em"
+            lineHeight="1.2"
+          >
+            {brandText}
+          </Text>
         </HStack>
 
-        {/* Flexible center spacer */}
-        <Box flex="1" />
-
-        {/* RIGHT SECTION: Quick links, Notifications, Profile capsule */}
-        <AdminNavbarLinks scrolled={scrolled} />
+        {/* RIGHT SECTION: Notifications & Profile Menu */}
+        <AdminNavbarLinks />
       </Flex>
+
+      {/* Global Ctrl+K Command Palette Modal */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+      />
     </>
   );
 });
+
+AdminNavbar.propTypes = {
+  onOpen: PropTypes.func,
+  brandText: PropTypes.string,
+  isCollapsed: PropTypes.bool,
+  onToggleCollapse: PropTypes.func,
+};
 
 export default AdminNavbar;

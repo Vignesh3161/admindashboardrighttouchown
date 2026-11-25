@@ -4,6 +4,7 @@ import { useAppToast } from "components/feedback";
 import ErrorState from "components/feedback/ErrorState";
 import ConfirmActionModal from "components/common/ConfirmActionModal";
 import RefreshButton from "components/common/RefreshButton";
+import { TableSkeleton } from "components/common";
 import {
   Box,
   Flex,
@@ -92,7 +93,7 @@ export default function ReportsManagement() {
   const userRole = useAppSelector(selectRole);
   const isOwner = isOwnerRole(userRole);
 
-  const [activeTab, setActiveTab] = useState("reports");
+  const [activeTab, setActiveTab] = useState("ratings");
 
   const [reports, setReports] = useState([]);
   const [ratings, setRatings] = useState([]);
@@ -958,7 +959,7 @@ export default function ReportsManagement() {
   const modalCustDetails = selectedItem ? getCustomerDetails(selectedItem) : {};
 
   return (
-    <Box pt={{ base: "120px", md: "80px" }} px={{ base: "16px", md: "24px" }} pb="40px">
+    <Box pt={0} px={0} pb="40px">
       <VStack spacing={6} align="stretch">
         {/* ================= 1. PAGE HEADER ================= */}
         <Flex
@@ -970,10 +971,10 @@ export default function ReportsManagement() {
           <Box>
             <HStack spacing={2} mb={1}>
               <Tag size="sm" colorScheme="teal" borderRadius="full" fontWeight="bold">
-                QUALITY ASSURANCE & DISPUTE DESK
+                RATINGS & CUSTOMER FEEDBACK
               </Tag>
               <Badge
-                colorScheme="purple"
+                colorScheme="teal"
                 variant="subtle"
                 fontSize="xs"
                 px={2}
@@ -983,12 +984,12 @@ export default function ReportsManagement() {
                 alignItems="center"
                 gap={1}
               >
-                <Box as="span" w="6px" h="6px" borderRadius="full" bg="purple.500" />
-                Live Review Stream
+                <Box as="span" w="6px" h="6px" borderRadius="full" bg="teal.500" />
+                Verified Reviews
               </Badge>
             </HStack>
             <Heading as="h1" size="lg" fontWeight="900" letterSpacing="-0.5px" color={isDark ? "white" : "gray.850"}>
-              Reported Issues & Customer Ratings
+              Customer Ratings & Quality Reviews
             </Heading>
           </Box>
 
@@ -1023,7 +1024,15 @@ export default function ReportsManagement() {
         )}
 
         {/* ================= 2. EXECUTIVE KPI CARDS ================= */}
-        <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={4}>
+        <Box
+          position={{ base: "static", md: "sticky" }}
+          top={{ base: "0", md: "64px" }}
+          zIndex="900"
+          bg="gray.50"
+          pt={{ base: 1, md: 2 }}
+          pb={{ base: 2, md: 3 }}
+        >
+          <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={4}>
           {/* Card 1: Total Reports */}
           <Box
             p={5}
@@ -1157,6 +1166,7 @@ export default function ReportsManagement() {
             </HStack>
           </Box>
         </SimpleGrid>
+        </Box>
 
         {/* ================= 3. WORKSPACE CONTAINER WITH SEGMENTED TABS ================= */}
         <Box
@@ -1374,14 +1384,9 @@ export default function ReportsManagement() {
           {/* Table / List Workspace */}
           <Box p={6}>
             {isLoading ? (
-              <Center py={16}>
-                <VStack spacing={3}>
-                  <Spinner size="lg" color={BRAND} thickness="3px" />
-                  <Text fontSize="sm" color="gray.500" fontWeight="600">
-                    Loading {activeTab === "reports" ? "dispute records" : "customer reviews"}...
-                  </Text>
-                </VStack>
-              </Center>
+              <Box py={4}>
+                <TableSkeleton rows={7} columns={6} />
+              </Box>
             ) : filteredData.length === 0 ? (
               <Center py={16} bg={isDark ? "gray.800" : "gray.50"} borderRadius="16px">
                 <VStack spacing={2}>

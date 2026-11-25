@@ -34,6 +34,7 @@ import {
 import { FiChevronDown, FiTrendingUp, FiTrendingDown } from "react-icons/fi";
 import { HiOutlineCalendar } from "react-icons/hi";
 import ReactApexChart from "react-apexcharts";
+import { ChartSkeleton } from "components/common";
 
 // Currency formatter
 const formatCurrency = (amount) => {
@@ -830,12 +831,9 @@ export default function ServiceCategoryPerformance({
 
       {/* 3. CHART CANVAS & CATEGORY ICONS FOOTER */}
       {loading ? (
-        <Flex h="360px" align="center" justify="center" direction="column">
-          <Spinner size="xl" color="blue.500" thickness="3px" mb={3} />
-          <Text fontSize="sm" color="gray.500">
-            Updating category analytics...
-          </Text>
-        </Flex>
+        <Box h="360px" p={4}>
+          <ChartSkeleton height={320} />
+        </Box>
       ) : categoryPerformance.length > 0 ? (
         <Box position="relative">
           <Box h="320px">

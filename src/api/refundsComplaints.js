@@ -47,3 +47,24 @@ export const getComplaintCategories = () =>
 export const updateComplaintStatus = (id, body) =>
   handle(apiClient.post(`/admin/complaints/${id}/status`, body));
 
+export const recommendPenalty = (id, body) =>
+  handle(apiClient.post(`/admin/complaints/${id}/penalty/recommend`, body));
+
+export const approvePenalty = (id, body) =>
+  handle(apiClient.post(`/admin/complaints/${id}/penalty/approve`, body));
+
+export const rejectPenalty = (id, body) =>
+  handle(apiClient.post(`/admin/complaints/${id}/penalty/reject`, body));
+
+export const waivePenalty = (id, body) =>
+  handle(apiClient.post(`/admin/complaints/${id}/penalty/waive`, body));
+
+export const recommendPenaltyReversal = (id, body) =>
+  handle(apiClient.post(`/admin/complaints/${id}/penalty/reversal/recommend`, body));
+
+export const approvePenaltyReversal = (id, body) =>
+  handle(apiClient.post(`/admin/complaints/${id}/penalty/reversal/approve`, body));
+
+export const rejectPenaltyReversal = (id, body) =>
+  handle(apiClient.post(`/admin/complaints/${id}/penalty/reversal/reject`, body));
+

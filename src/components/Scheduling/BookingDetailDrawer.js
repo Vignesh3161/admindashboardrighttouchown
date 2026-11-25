@@ -1451,7 +1451,7 @@ export default function BookingDetailDrawer({
                                   as="a"
                                   href={techMapsUrl}
                                   target="_blank"
-                                  rel="noreferrer"
+                                  rel="noopener noreferrer"
                                   aria-label="Open technician service origin in Maps"
                                 />
                               </Tooltip>

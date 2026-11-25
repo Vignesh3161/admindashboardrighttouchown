@@ -47,6 +47,7 @@ import {
 import { MdRefresh } from "react-icons/md";
 import { useAppToast } from "components/feedback";
 import StatusBadge from "components/common/StatusBadge";
+import { TableSkeleton } from "components/common";
 import {
   getAllSchedulingBookings,
   getSchedulingBookingById,
@@ -321,14 +322,9 @@ export default function BookingAuditTab({
 
       {/* Main Inspection Area */}
       {auditLoading ? (
-        <Center py={20}>
-          <VStack spacing={3}>
-            <Spinner size="xl" color="#008080" thickness="3px" />
-            <Text fontSize="sm" color="gray.500">
-              Retrieving booking specifications &amp; broadcast candidate delivery logs...
-            </Text>
-          </VStack>
-        </Center>
+        <Box py={4}>
+          <TableSkeleton rows={6} columns={6} />
+        </Box>
       ) : auditError ? (
         <Alert status="error" borderRadius="12px" mb={4}>
           <AlertIcon />

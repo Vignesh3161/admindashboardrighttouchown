@@ -22,6 +22,7 @@ import {
   InputLeftElement,
   SimpleGrid,
   Spinner,
+  Skeleton,
   Text,
   VStack,
   Wrap,
@@ -412,14 +413,9 @@ export default function SendMoneyModal({
         )}
 
         {selectedTechId && walletLoading && (
-          <Flex py={6} justify="center" align="center">
-            <HStack spacing={3}>
-              <Spinner size="sm" color="teal.500" />
-              <Text fontSize="xs" color="gray.500">
-                Checking live balance...
-              </Text>
-            </HStack>
-          </Flex>
+          <Box my={3}>
+            <Skeleton height="40px" borderRadius="10px" />
+          </Box>
         )}
 
         {selectedTechId && walletOverview && (

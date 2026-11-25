@@ -25,8 +25,6 @@ import {
 } from "react-icons/fa";
 
 export default function AdminStatsCards({
-  activeTab,
-  onCardClick,
   loading = false,
   counts = {},
   customColor = "#008080",
@@ -72,11 +70,14 @@ export default function AdminStatsCards({
           borderRadius="full"
           fontWeight="bold"
           textTransform="capitalize"
+          lineHeight="1.2"
+          display="inline-flex"
+          alignItems="center"
         >
           {newUnverifiedCount} unverified
         </Badge>
       ) : (
-        <Text fontSize="10px" color="gray.400" fontWeight="medium">
+        <Text fontSize="10px" color="gray.400" fontWeight="medium" lineHeight="1">
           All verified
         </Text>
       ),
@@ -98,6 +99,9 @@ export default function AdminStatsCards({
           borderRadius="full"
           fontWeight="bold"
           textTransform="capitalize"
+          lineHeight="1.2"
+          display="inline-flex"
+          alignItems="center"
         >
           Active & ready
         </Badge>
@@ -120,11 +124,14 @@ export default function AdminStatsCards({
           borderRadius="full"
           fontWeight="bold"
           textTransform="capitalize"
+          lineHeight="1.2"
+          display="inline-flex"
+          alignItems="center"
         >
           {kycUnverifiedCount} unverified
         </Badge>
       ) : (
-        <Text fontSize="10px" color="gray.400" fontWeight="medium">
+        <Text fontSize="10px" color="gray.400" fontWeight="medium" lineHeight="1">
           All verified
         </Text>
       ),
@@ -146,11 +153,14 @@ export default function AdminStatsCards({
           borderRadius="full"
           fontWeight="bold"
           textTransform="capitalize"
+          lineHeight="1.2"
+          display="inline-flex"
+          alignItems="center"
         >
           {bankUnverifiedCount} unverified
         </Badge>
       ) : (
-        <Text fontSize="10px" color="gray.400" fontWeight="medium">
+        <Text fontSize="10px" color="gray.400" fontWeight="medium" lineHeight="1">
           All verified
         </Text>
       ),
@@ -161,8 +171,7 @@ export default function AdminStatsCards({
     <Box mb={{ base: 3, md: 4 }} px={{ base: 2, md: 4 }}>
       <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 5 }} spacing={{ base: 3, md: 4 }}>
         {cardItems.map((item) => {
-          const isActive = activeTab === item.id;
-          const cardStyle = getSkeuomorphicCardStyle(isDark, isActive, customColor);
+          const cardStyle = getSkeuomorphicCardStyle(isDark, false, customColor);
 
           return (
             <Card
@@ -170,34 +179,44 @@ export default function AdminStatsCards({
               minH={{ base: "90px", md: "105px" }}
               h={{ base: "auto", md: "105px" }}
               borderRadius="10px"
-              cursor="pointer"
-              onClick={() => onCardClick(item.id)}
               p={0}
               {...cardStyle}
             >
-              <CardBody p={{ base: 3, md: 4 }} display="flex" alignItems="center">
-                <Flex align="flex-start" justify="space-between">
-                  <Box flex="1" mr={2}>
-                    <Text fontSize="xs" color={isDark ? "gray.400" : "gray.600"} fontWeight="bold" noOfLines={1}>
+              <CardBody
+                p={{ base: 3, md: 4 }}
+                display="flex"
+                alignItems="center"
+                h="100%"
+                w="100%"
+              >
+                <Flex align="center" justify="space-between" w="100%">
+                  <Box flex="1" mr={2} overflow="hidden">
+                    <Text
+                      fontSize="xs"
+                      color={isDark ? "gray.400" : "gray.600"}
+                      fontWeight="bold"
+                      noOfLines={1}
+                      lineHeight="1.2"
+                    >
                       {item.label}
                     </Text>
                     <Text
                       as="div"
-                      fontSize="2xl"
+                      fontSize={{ base: "xl", md: "2xl" }}
                       fontWeight="black"
                       color={item.color}
-                      mt={1}
-                      lineHeight="1.2"
+                      mt={0.5}
+                      lineHeight="1.1"
                     >
                       {loading ? <Skeleton height="24px" width="40px" /> : item.value}
                     </Text>
-                    <Box mt={1.5} minH="18px">
+                    <Flex align="center" mt={1} minH="20px">
                       {item.badge || (
-                        <Text fontSize="10px" color="gray.400" fontWeight="medium">
+                        <Text fontSize="10px" color="gray.400" fontWeight="medium" lineHeight="1">
                           {item.subLabel}
                         </Text>
                       )}
-                    </Box>
+                    </Flex>
                   </Box>
                   <IconBox
                     h={{ base: "40px", md: "44px" }}

@@ -9,6 +9,7 @@ import {
   MdInventory2,
   MdPayments,
   MdInsights,
+  MdReportProblem,
 } from "react-icons/md";
 import {
   FaUserGear,
@@ -40,18 +41,20 @@ const AdminManagement = lazy(() => import("views/Dashboard/AdminManagement.js"))
 const UserManagement = lazy(() => import("views/Dashboard/UserManagement.js"));
 const ServiceManagement = lazy(() => import("views/Dashboard/ServiceManagement.js"));
 const ReportsManagement = lazy(() => import("views/Dashboard/ReportsManagement.js"));
+const ComplaintManagement = lazy(() => import("views/Dashboard/ComplaintManagement.js"));
 const CommissionManagement = lazy(() => import("views/Dashboard/CommissionManagement.js"));
 const CityZones = lazy(() => import("views/Dashboard/CityZones.js"));
 const FinanceTracking = lazy(() => import("views/Dashboard/FinanceTracking.js"));
 const TechnicianPayouts = lazy(() => import("views/Dashboard/TechnicianPayouts.js"));
 const ProductManagement = lazy(() => import("views/Dashboard/ProductManagement"));
-const SkillRequests = lazy(() => import("views/Dashboard/SkillRequests.js"));
 const SchedulingOps = lazy(() => import("views/Dashboard/SchedulingOps.js"));
 const RewardsManagement = lazy(() => import("views/Dashboard/RewardsManagement.js"));
 const ProductInsights = lazy(() => import("views/Dashboard/ProductInsights.js"));
 const AdminPayments = lazy(() => import("views/Dashboard/AdminPayments.js"));
 const PermissionsManagement = lazy(() => import("views/Dashboard/PermissionsManagement.js"));
 const CredentialManagement = lazy(() => import("views/Dashboard/CredentialManagement.js"));
+const CreateDistrictPage = lazy(() => import("views/Dashboard/CreateDistrictPage.js"));
+const CreateZonePage = lazy(() => import("views/Dashboard/CreateZonePage.js"));
 
 const ICON_COLOR = "#008080";
 const ICON_SIZE = 20;
@@ -160,16 +163,25 @@ const dashRoutes = [
     roles: ["owner"],
   },
   {
+    path: "/complaints",
+    name: "Complaint Management",
+    icon: <MdReportProblem color={ICON_COLOR} size={ICON_SIZE} />,
+    element: <ComplaintManagement />,
+    layout: "/owner",
+    roles: ["owner", "admin"],
+  },
+  {
     path: "/admin-payments",
     name: "Admin Payments",
     icon: <FaWallet color={ICON_COLOR} size={ICON_SIZE} />,
     element: <AdminPayments />,
     layout: "/owner",
     roles: ["owner"],
+    hideInSidebar: true,
   },
   {
     path: "/reports-ratings",
-    name: "Report & Ratings",
+    name: "Ratings & Reviews",
     icon: <HiDocumentChartBar color={ICON_COLOR} size={ICON_SIZE} />,
     element: <ReportsManagement />,
     layout: "/owner",
@@ -182,15 +194,6 @@ const dashRoutes = [
     element: <RewardsManagement />,
     layout: "/owner",
     roles: ["owner"],
-  },
-  {
-    path: "/skill-requests",
-    name: "Skill Requests",
-    icon: <FaTools color={ICON_COLOR} size={ICON_SIZE} />,
-    element: <SkillRequests />,
-    layout: "/owner",
-    roles: ["owner", "admin"],
-    hideInSidebar: true,
   },
   {
     path: "/dispatch-ops",
@@ -234,6 +237,38 @@ const dashRoutes = [
     element: <CredentialManagement />,
     layout: "/owner",
     roles: ["owner"],
+    hideInSidebar: true,
+  },
+  {
+    path: "/city-zones/create-district",
+    name: "Create Operational District",
+    element: <CreateDistrictPage />,
+    layout: "/owner",
+    roles: ["owner", "admin"],
+    hideInSidebar: true,
+  },
+  {
+    path: "/city-zones/edit-district/:id",
+    name: "Edit Operational District",
+    element: <CreateDistrictPage isEditing={true} />,
+    layout: "/owner",
+    roles: ["owner", "admin"],
+    hideInSidebar: true,
+  },
+  {
+    path: "/city-zones/create-zone",
+    name: "Create City Zone",
+    element: <CreateZonePage />,
+    layout: "/owner",
+    roles: ["owner", "admin"],
+    hideInSidebar: true,
+  },
+  {
+    path: "/city-zones/edit-zone/:id",
+    name: "Edit City Zone",
+    element: <CreateZonePage isEditing={true} />,
+    layout: "/owner",
+    roles: ["owner", "admin"],
     hideInSidebar: true,
   },
 

@@ -100,3 +100,76 @@ export const updateScheduleSlotSettings = (body) =>
  */
 export const resetScheduleSlotSettings = () =>
   handle(apiClient.post("/admin/settings/schedule-slots/reset"));
+
+/* ================= 7. SCHEDULED JOB POOL OPERATIONS ================= */
+
+/**
+ * Fetch bookings from the Scheduled Job Pool filtered by status.
+ * @param {Object} params
+ * @param {'all'|'unassigned'|'in_review'|'assigned'|'overdue'} [params.status='all']
+ * @param {number} [params.page=1]
+ * @param {number} [params.limit=20]
+ * @param {string} [params.search]
+ * @param {string} [params.districtId]
+ */
+export const getScheduledPoolBookings = (params = { status: "all", page: 1, limit: 20 }) =>
+  handle(apiClient.get("/admin/scheduled-pool", { params }));
+
+/**
+ * Discover eligible candidate technicians and reasons why others were disqualified.
+ * @param {string} bookingId
+ */
+export const getEligibleTechnicians = (bookingId) =>
+  handle(apiClient.get(`/admin/scheduled-pool/${bookingId}/eligible-technicians`));
+
+/**
+ * Manually assign an eligible technician to a pooled booking.
+ * @param {string} bookingId
+ * @param {Object} body
+ * @param {string} body.technicianProfileId
+ */
+export const assignScheduledPoolJob = (bookingId, body) =>
+  handle(apiClient.post(`/admin/scheduled-pool/${bookingId}/assign`, body));
+
+/**
+ * Emergency swap/reassign an assigned technician with a replacement.
+ * @param {string} bookingId
+ * @param {Object} body
+ * @param {string} body.toTechnicianId
+ * @param {string} body.reason
+ */
+export const reassignScheduledPoolJob = (bookingId, body) =>
+  handle(apiClient.post(`/admin/scheduled-pool/${bookingId}/reassign`, body));
+
+/**
+ * Reopen an escalated or released booking back to the Scheduled Job Pool.
+ * @param {string} bookingId
+ */
+export const reopenScheduledPoolJob = (bookingId) =>
+  handle(apiClient.post(`/admin/scheduled-pool/${bookingId}/reopen`));
+
+/**
+ * Update administrative review status and investigation notes on a pooled booking.
+ * @param {string} bookingId
+ * @param {Object} body
+ * @param {'open'|'reviewed'|'investigating'|'dismissed'} [body.adminReviewStatus]
+ * @param {string} [body.reviewNote]
+ */
+export const updateScheduledPoolReview = (bookingId, body) =>
+  handle(apiClient.patch(`/admin/scheduled-pool/${bookingId}/review`, body));
+
+/**
+ * Get runtime Scheduled Job Pool configuration.
+ */
+export const getScheduledPoolConfig = () =>
+  handle(apiClient.get("/admin/scheduled-pool/config"));
+
+/**
+ * Update runtime Scheduled Job Pool configuration.
+ * @param {Object} body
+ * @param {boolean} [body.enabled]
+ * @param {number} [body.escalationLeadMinutes]
+ */
+export const updateScheduledPoolConfig = (body) =>
+  handle(apiClient.put("/admin/scheduled-pool/config", body));
+

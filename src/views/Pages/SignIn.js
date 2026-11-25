@@ -489,7 +489,7 @@ function AdminLogin() {
         >
           <VStack spacing={{ base: "20px", sm: "22px", md: "25px", lg: "28px", xl: "30px" }} align="stretch">
             {/* Mobile / Identifier Field */}
-            <FormControl isRequired>
+            <FormControl isRequired isInvalid={false}>
               <FormLabel
                 fontSize={{ base: "14px", sm: "15px", md: "16px", lg: "16px", xl: "17px" }}
                 fontWeight="600"
@@ -536,6 +536,8 @@ function AdminLogin() {
                 onChange={handleMobileChange}
                 onKeyDown={handleMobileKeyDown}
                 isDisabled={loading}
+                isInvalid={false}
+                errorBorderColor="gray.200"
                 size={{ base: "md", sm: "lg", md: "lg", lg: "lg", xl: "lg" }}
                 h={{ base: "45px", sm: "48px", md: "50px", lg: "52px", xl: "55px" }}
                 p="14px"
@@ -549,12 +551,16 @@ function AdminLogin() {
                   boxShadow: "0 0 0 3px rgba(0, 128, 128, 0.15)",
                   bg: "white",
                 }}
+                _invalid={{
+                  borderColor: "gray.200",
+                  boxShadow: "none",
+                }}
                 transition="all 0.3s ease"
               />
             </FormControl>
 
             {/* Password Field */}
-            <FormControl isRequired>
+            <FormControl isRequired isInvalid={false}>
               <FormLabel
                 fontSize={{ base: "14px", sm: "15px", md: "16px", lg: "16px", xl: "17px" }}
                 fontWeight="600"
@@ -584,6 +590,8 @@ function AdminLogin() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   isDisabled={loading}
+                  isInvalid={false}
+                  errorBorderColor="gray.200"
                   h={{ base: "45px", sm: "48px", md: "50px", lg: "52px", xl: "55px" }}
                   p="14px"
                   borderRadius="12px"
@@ -595,6 +603,10 @@ function AdminLogin() {
                     borderColor: "#008080",
                     boxShadow: "0 0 0 3px rgba(0, 128, 128, 0.15)",
                     bg: "white",
+                  }}
+                  _invalid={{
+                    borderColor: "gray.200",
+                    boxShadow: "none",
                   }}
                   transition="all 0.3s ease"
                 />

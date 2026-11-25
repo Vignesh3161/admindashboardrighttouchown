@@ -33,6 +33,7 @@ import CardBody from "components/Card/CardBody.js";
 import CardHeader from "components/Card/CardHeader.js";
 import SharedStatCard from "components/common/StatCard";
 import RefreshButton from "components/common/RefreshButton";
+import { TableSkeleton, FormSkeleton } from "components/common";
 import StatusBadge from "components/common/StatusBadge";
 import {
   getProductDashboard,
@@ -121,7 +122,7 @@ export default function ProductInsights() {
   };
 
   return (
-    <Box pt={{ base: "120px", md: "75px" }}>
+    <Box pt={0}>
       {/* Standardized 105px KPI Cards */}
       <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={{ base: 3, md: 4 }} mb={{ base: 3, md: 4 }}>
         <SharedStatCard kpi title="Active Products" value={String(summary?.totalProductsCount ?? "—")} />
@@ -158,7 +159,7 @@ export default function ProductInsights() {
                 {loadError ? (
                   <ErrorState compact error={loadError} title="Could not load sales data" onRetry={loadTab} />
                 ) : loading ? (
-                  <Center py={10}><Spinner color={BRAND} /></Center>
+                  <Box py={4}><TableSkeleton rows={6} columns={6} /></Box>
                 ) : sales.length === 0 ? (
                   <Center py={10}><Text color="gray.500">No sales records found for this period.</Text></Center>
                 ) : (
@@ -214,7 +215,7 @@ export default function ProductInsights() {
                 {loadError ? (
                   <ErrorState compact error={loadError} title="Could not load audit logs" onRetry={loadTab} />
                 ) : loading ? (
-                  <Center py={10}><Spinner color={BRAND} /></Center>
+                  <Box py={4}><TableSkeleton rows={6} columns={6} /></Box>
                 ) : logs.length === 0 ? (
                   <Center py={10}><Text color="gray.500">No product audit logs recorded.</Text></Center>
                 ) : (
@@ -275,7 +276,7 @@ export default function ProductInsights() {
         secondaryAction={{ label: "Close", onClick: () => setLogModalOpen(false) }}
       >
             {logLoading ? (
-              <Center py={8}><Spinner color={BRAND} /></Center>
+              <Box py={4}><FormSkeleton fields={5} /></Box>
             ) : !selectedLog ? (
               <Text>No audit log details available.</Text>
             ) : (

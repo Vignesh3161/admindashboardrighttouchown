@@ -3,3 +3,5 @@ export { default as AllocateTechnicianModal } from "./AllocateTechnicianModal";
 export { default as UserPaymentModal } from "./UserPaymentModal";
 export { default as DeleteUserModal } from "./DeleteUserModal";
 export { default as UserStatsCards } from "./UserStatsCards";
+export { default as CustomerDetailsDrawer } from "./CustomerDetailsDrawer";
+

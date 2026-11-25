@@ -10,6 +10,7 @@ import {
 } from "@chakra-ui/react";
 import { FaUsers, FaBoxOpen, FaEdit, FaSignOutAlt, FaSave, FaTimes, FaChartPie, FaCrown, FaStar, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import Card from "components/Card/Card";
+import { TableSkeleton, ChartSkeleton } from "components/common";
 import { useNavigate } from "react-router-dom";
 import { getAllBookings, getAllServiceBooking, getAllTechnicians, getAllProduct, getAllServices, clearAuth, getUser, getMyProfile, updateMyProfile } from "views/utils/axiosInstance";
 import { useAppDispatch, useAppSelector } from "store/hooks";
@@ -496,10 +497,15 @@ export default function OwnerProfile() {
     }
   };
 
-  const handleLogout = () => {
-    Promise.resolve(dispatch(logoutSession())).catch(() => clearAuth());
-    toast({ title: "Logged Out", status: "info", duration: 2000 });
-    navigate("/auth/signin");
+  const handleLogout = async () => {
+    try {
+      await dispatch(logoutSession());
+      toast({ title: "Logged Out", description: "You have been logged out.", status: "info", duration: 2000 });
+      navigate("/auth/signin", { replace: true });
+    } catch (e) {
+      clearAuth();
+      navigate("/auth/signin", { replace: true });
+    }
   };
 
 
@@ -555,19 +561,18 @@ export default function OwnerProfile() {
   const totalServicePages = Math.ceil((Array.isArray(services) ? services : []).length / servicePerPage);
 
   return (
-    <Flex direction={{ base: "column", md: "row" }} gap={8} p={6} mt={12}>
+    <Flex direction={{ base: "column", md: "row" }} gap={8} p={0} mt={0}>
       {/* Left Panel - Fixed Card */}
       <Card
         w={{ base: "100%", md: "280px" }}
         bg={cardBg}
-        mt={12}
         p={5}
         borderRadius="2xl"
         boxShadow="md"
         transition="all 0.3s ease"
         _hover={{ transform: "translateY(-3px)", boxShadow: "xl" }}
         position="sticky"
-        top="100px"
+        top="80px"
         alignSelf="flex-start"
       >
         <Flex direction="column" align="center">
@@ -650,7 +655,7 @@ export default function OwnerProfile() {
                 </Text>
 
                 {dataLoading ? (
-                  <Flex justify="center" py={8}><Spinner size="lg" /></Flex>
+                  <Box py={4}><TableSkeleton rows={5} columns={4} /></Box>
                 ) : (
                   <>
                     <Table variant="simple" size="sm">
@@ -748,7 +753,7 @@ export default function OwnerProfile() {
                   </Text>
                 </Flex>
                 {dataLoading ? (
-                  <Flex justify="center" py={8}><Spinner size="lg" /></Flex>
+                  <Box py={4}><TableSkeleton rows={5} columns={4} /></Box>
                 ) : (
                   <>
                     <Table variant="simple" size="sm">
@@ -840,9 +845,9 @@ export default function OwnerProfile() {
                   </Flex>
 
                   {dataLoading ? (
-                    <Flex justify="center" align="center" py={12}>
-                      <Spinner size="xl" color="purple.500" />
-                    </Flex>
+                    <Box py={8}>
+                      <ChartSkeleton height={280} />
+                    </Box>
                   ) : (
                     <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={8}>
                       <Box p={5} borderRadius="xl" border="1px solid" borderColor="gray.100" bg="white" shadow="sm">
