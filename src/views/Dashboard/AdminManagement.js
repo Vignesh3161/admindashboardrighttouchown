@@ -596,7 +596,7 @@ const getImageUrl = (urlData) => {
   const url = Array.isArray(urlData) ? urlData[0] : urlData;
   if (typeof url !== "string") return "";
   if (url.startsWith("http") || url.startsWith("data:")) return url;
-  return `${API_ORIGIN}/${url.replace(/^\/+/, "")}`;
+  return `${resolveApiOrigin()}/${url.replace(/^\/+/, "")}`;
 };
 
 const getTechnicianImage = (tech, kycRecords = []) => {
